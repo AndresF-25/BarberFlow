@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+.barberflow-auth {
+  --pine: #1F4D3A;
+  --gold: #C9A227;
+  --gold-light: #e3c25c;
+  --ink: #121212;
+  --paper: #F5F2E8;
+  --paper-dim: #ece7d8;
+  --font-display: "Big Shoulders Display", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: var(--ink);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(31, 77, 58, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(201, 162, 39, 0.18), transparent 50%);
+  font-family: var(--font-body);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.barberflow-auth *, .barberflow-auth *::before, .barberflow-auth *::after { box-sizing: border-box; }
+
+.barberflow-auth .auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--paper);
+  border-radius: 14px;
+  padding: 40px 36px;
+  box-shadow: 0 30px 60px rgba(0,0,0,.35);
+}
+
+.barberflow-auth .auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.barberflow-auth .auth-logo-mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.barberflow-auth .auth-logo-mark span {
+  width: 14px; height: 22px; border-radius: 7px;
+  background: linear-gradient(180deg, var(--gold) 0%, var(--pine) 25%, #FFD6D1 50%, var(--gold) 75%, var(--pine) 100%);
+}
+.barberflow-auth .auth-logo-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: .01em;
+}
+
+.barberflow-auth .auth-eyebrow {
+  font-family: var(--font-body);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--pine);
+  margin: 0 0 8px;
+}
+.barberflow-auth h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.7rem;
+  line-height: 1.1;
+  margin: 0 0 8px;
+}
+.barberflow-auth .auth-sub {
+  margin: 0 0 28px;
+  color: rgba(18,18,18,.62);
+  font-size: .92rem;
+  line-height: 1.5;
+}
+
+.barberflow-auth form { display: flex; flex-direction: column; gap: 16px; }
+.barberflow-auth label {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: rgba(18,18,18,.75);
+}
+.barberflow-auth input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(18,18,18,.14);
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: .95rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s ease;
+}
+.barberflow-auth input:focus { border-color: var(--pine); }
+.barberflow-auth input.has-error { border-color: #b3413a; }
+
+.barberflow-auth .auth-error {
+  background: rgba(179, 65, 58, .1);
+  border: 1px solid rgba(179, 65, 58, .3);
+  color: #8a2f29;
+  font-size: .82rem;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.barberflow-auth .btn-submit {
+  margin-top: 4px;
+  padding: 13px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: background .15s ease, transform .15s ease;
+}
+.barberflow-auth .btn-submit:hover { background: var(--gold-light); transform: translateY(-1px); }
+.barberflow-auth .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform:none; }
+
+.barberflow-auth .auth-switch {
+  margin-top: 22px;
+  text-align: center;
+  font-size: .87rem;
+  color: rgba(18,18,18,.62);
+}
+.barberflow-auth .auth-switch a {
+  color: var(--pine);
+  font-weight: 600;
+  text-decoration: none;
+}
+.barberflow-auth .auth-switch a:hover { text-decoration: underline; }
+
+.barberflow-auth .auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .82rem;
+  color: rgba(18,18,18,.5);
+  text-decoration: none;
+  margin-top: 22px;
+}
+.barberflow-auth .auth-back:hover { color: var(--ink); }
