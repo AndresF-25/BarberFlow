@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  master
+  owner
+  employee
+}
+
+enum AppointmentStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+enum PaymentMethod {
+  cash
+  card
+  transfer
+}
+
+enum StockAdjustmentReason {
+  sale
+  manual
+  correction
+}
+
+model Business {
+  id          String   @id @default(uuid())
+  name        String
+  logoUrl     String?  @map("logo_url")
+  description String   @default("")
+  phone       String   @default("")
+  address     String   @default("")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users               User[]
+  clients             Client[]
+  services            Service[]
+  products            Product[]
+  appointments        Appointment[]
+  productSales        ProductSale[]
+  serviceTransactions ServiceTransaction[]
+
+  @@map("businesses")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  businessId   String?  @map("business_id")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         UserRole
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  business              Business?            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staffProfile          StaffProfile?
+  appointmentsAssigned  Appointment[]        @relation("AppointmentEmployee")
+  appointmentsCreated   Appointment[]        @relation("AppointmentCreator")
+  productSales          ProductSale[]
+  serviceTransactions   ServiceTransaction[]
+
+  @@index([businessId])
+  @@index([role])
+  @@map("users")
+}
+
+model StaffProfile {
+  userId       String @id @map("user_id")
+  specialty    String @default("")
+  color        String @default("#C79A5B")
+  displayOrder Int    @default(0) @map("display_order")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_profiles")
+}
+
+model Client {
+  id         String   @id @default(uuid())
+  businessId String   @map("business_id")
+  name       String
+  phone      String   @default("")
+  notes      String   @default("")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  business              Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments          Appointment[]
+  productSales          ProductSale[]
+  serviceTransactions   ServiceTransaction[]
+
+  @@index([businessId])
+  @@index([businessId, phone])
+  @@map("clients")
+}
+
+model Service {
+  id              String   @id @default(uuid())
+  businessId      String   @map("business_id")
+  name            String
+  category        String
+  priceCents      Int      @map("price_cents")
+  durationMinutes Int      @map("duration_minutes")
+  isActive        Boolean  @default(true) @map("is_active")
+  timesPerformed  Int      @default(0) @map("times_performed")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  business              Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments          Appointment[]
+  serviceTransactions   ServiceTransaction[]
+
+  @@index([businessId])
+  @@index([businessId, isActive])
+  @@map("services")
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  businessId    String   @map("business_id")
+  name          String
+  category      String
+  stock         Int      @default(0)
+  stockMin      Int      @default(0) @map("stock_min")
+  unit          String   @default("unidad")
+  salePriceCents  Int    @map("sale_price_cents")
+  costPriceCents  Int    @default(0) @map("cost_price_cents")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productSales      ProductSale[]
+  stockAdjustments  StockAdjustment[]
+
+  @@index([businessId])
+  @@index([businessId, isActive])
+  @@map("products")
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  businessId      String            @map("business_id")
+  clientId        String?           @map("client_id")
+  serviceId       String            @map("service_id")
+  employeeId      String            @map("employee_id")
+  appointmentDate DateTime          @map("appointment_date") @db.Date
+  startTime       String            @map("start_time")
+  status          AppointmentStatus @default(pending)
+  clientName      String            @map("client_name")
+  clientPhone     String            @default("") @map("client_phone")
+  createdById     String?           @map("created_by_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  business            Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client              Client?              @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  service             Service              @relation(fields: [serviceId], references: [id])
+  employee            User                 @relation("AppointmentEmployee", fields: [employeeId], references: [id])
+  createdBy           User?                @relation("AppointmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  serviceTransaction  ServiceTransaction?
+
+  @@index([businessId, appointmentDate])
+  @@index([businessId, status])
+  @@index([employeeId])
+  @@map("appointments")
+}
+
+model ServiceTransaction {
+  id            String        @id @default(uuid())
+  businessId    String        @map("business_id")
+  appointmentId String?       @unique @map("appointment_id")
+  serviceId     String        @map("service_id")
+  clientId      String?       @map("client_id")
+  employeeId    String        @map("employee_id")
+  amountCents   Int           @map("amount_cents")
+  paymentMethod PaymentMethod @default(cash) @map("payment_method")
+  completedAt   DateTime      @default(now()) @map("completed_at")
+
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  service     Service      @relation(fields: [serviceId], references: [id])
+  client      Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  employee    User         @relation(fields: [employeeId], references: [id])
+
+  @@index([businessId, completedAt])
+  @@map("service_transactions")
+}
+
+model ProductSale {
+  id             String   @id @default(uuid())
+  businessId     String   @map("business_id")
+  productId      String   @map("product_id")
+  clientId       String?  @map("client_id")
+  clientName     String?  @map("client_name")
+  quantity       Int
+  unitPriceCents Int      @map("unit_price_cents")
+  totalCents     Int      @map("total_cents")
+  soldAt         DateTime @default(now()) @map("sold_at")
+  soldById       String   @map("sold_by_id")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+  client   Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  soldBy   User     @relation(fields: [soldById], references: [id])
+
+  @@index([businessId, soldAt])
+  @@map("product_sales")
+}
+
+model StockAdjustment {
+  id          String                @id @default(uuid())
+  productId   String                @map("product_id")
+  delta       Int
+  reason      StockAdjustmentReason
+  referenceId String?               @map("reference_id")
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("stock_adjustments")
+}

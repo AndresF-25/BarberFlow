@@ -13,11 +13,11 @@ export default function Login() {
 
   const onChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
-    const result = login(form);
+    const result = await login(form);
     setSubmitting(false);
 
     if (!result.ok) {

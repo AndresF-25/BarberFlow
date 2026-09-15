@@ -14,7 +14,7 @@
  *   3. No hace falta tocar App.jsx, ProtectedRoute ni AuthContext: ambos
  *      son independientes del contenido del Dashboard.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, CalendarDays, Users, Scissors, DollarSign, TrendingUp, TrendingDown,
@@ -1725,12 +1725,12 @@ function EmpleadosModal({ onClose, onSave }) {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (form.name.trim().length < 2) return setError('Ingresá el nombre del empleado.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError('Ingresá un correo válido.');
     if (form.password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.');
-    const result = onSave(form);
+    const result = await onSave(form);
     if (!result.ok) { setError(result.error); return; }
     onClose();
   };
@@ -1817,6 +1817,7 @@ export default function Dashboard() {
   const [productos, setProductos] = useState(PRODUCTOS_INICIAL);
   const [ventasProductos, setVentasProductos] = useState(VENTAS_PRODUCTOS_INICIAL);
   const [empleadosVersion, setEmpleadosVersion] = useState(0); // fuerza refresco tras crear empleado
+  const [empleados, setEmpleados] = useState([]);
   const [title, subtitle] = TITLES[active];
 
   // Menú filtrado según el rol: RoleRoute ya garantizó que solo owner/employee
@@ -1826,9 +1827,17 @@ export default function Dashboard() {
   const allowedTiendaIds = NAV_TIENDA_BY_ROLE[role] || [];
   const navTienda = NAV_TIENDA.filter(item => allowedTiendaIds.includes(item.id));
 
-  const empleados = useMemo(() => listEmployees(), [listEmployees, empleadosVersion]);
-  const handleCreateEmpleado = (data) => {
-    const result = createEmployee(data);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const list = await listEmployees();
+      if (active) setEmpleados(list);
+    })();
+    return () => { active = false; };
+  }, [listEmployees, empleadosVersion]);
+
+  const handleCreateEmpleado = async (data) => {
+    const result = await createEmployee(data);
     if (result.ok) setEmpleadosVersion(v => v + 1);
     return result;
   };

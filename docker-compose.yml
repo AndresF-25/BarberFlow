@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barberflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: barberflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - barberflow_pg_data:/var/lib/postgresql/data
+
+volumes:
+  barberflow_pg_data:

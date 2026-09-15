@@ -1,16 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api/client';
 import { Building2, Users, LogOut, Shield, Search } from 'lucide-react';
 
-/**
- * Panel del rol 'master'. Es independiente del Dashboard operativo de
- * owner/employee: el master no pertenece a un negocio, sino que consulta
- * información global de todos los negocios registrados en BarberFlow.
- *
- * Reutiliza la paleta de marca (carbón + dorado) para mantener identidad
- * visual con el resto de la app, pero es un componente propio y liviano:
- * no depende de Dashboard.jsx.
- */
 const C = {
   bg: '#0F0D0B',
   bgSoft: '#141110',
@@ -23,11 +15,35 @@ const C = {
 };
 
 export default function MasterDashboard() {
-  const { user, logout, listAllBusinesses, listAllUsers } = useAuth();
+  const { user, logout } = useAuth();
   const [search, setSearch] = useState('');
+  const [businesses, setBusinesses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const businesses = useMemo(() => listAllBusinesses(), [listAllBusinesses]);
-  const users = useMemo(() => listAllUsers(), [listAllUsers]);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const [bizData, usersData] = await Promise.all([
+          api.masterBusinesses(search),
+          api.masterUsers(),
+        ]);
+        if (!active) return;
+        setBusinesses(bizData.businesses || []);
+        setUsers(usersData.users || []);
+      } catch {
+        if (active) {
+          setBusinesses([]);
+          setUsers([]);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [search]);
 
   const employeesCountByBusiness = useMemo(() => {
     const map = {};
@@ -41,9 +57,7 @@ export default function MasterDashboard() {
     return map;
   }, [users]);
 
-  const filteredBusinesses = businesses.filter((b) =>
-    b.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredBusinesses = businesses;
 
   return (
     <div className="min-h-screen w-full" style={{ background: C.bg, color: C.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -64,6 +78,10 @@ export default function MasterDashboard() {
       </div>
 
       <main className="px-6 lg:px-10 py-8 max-w-[1200px] mx-auto space-y-8">
+        {loading && (
+          <div className="text-sm" style={{ color: C.textFaint }}>Cargando datos…</div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="rounded-xl p-5" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
             <div className="flex items-center gap-2 mb-2" style={{ color: C.textFaint }}>
@@ -115,7 +133,7 @@ export default function MasterDashboard() {
                     <td className="px-4 py-3" style={{ color: C.textMuted }}>{employeesCountByBusiness[b.id]?.employees || 0}</td>
                   </tr>
                 ))}
-                {filteredBusinesses.length === 0 && (
+                {filteredBusinesses.length === 0 && !loading && (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-sm" style={{ color: C.textFaint }}>
                       No hay negocios registrados todavía.
