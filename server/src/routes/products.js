@@ -3,8 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireBusinessContext, requireRole } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
-import { amountToCents, centsToAmount, formatDateOnly } from '../lib/utils.js';
-import { upsertClientFromInteraction } from '../services/clientService.js';
+import { amountToCents, centsToAmount } from '../lib/utils.js';
 
 const router = Router();
 

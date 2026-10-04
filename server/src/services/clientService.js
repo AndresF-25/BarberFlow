@@ -3,7 +3,8 @@ import { formatDateOnly } from '../lib/utils.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function upsertClientFromInteraction(businessId, { name, phone, serviceName, amountCents, date = new Date() }) {
+// `db` permite reutilizar la transacción activa (tx) en lugar del cliente global de Prisma.
+export async function upsertClientFromInteraction(businessId, { name, phone }, db = prisma) {
   const trimmedName = name?.trim();
   if (!trimmedName) return null;
 
@@ -11,13 +12,13 @@ export async function upsertClientFromInteraction(businessId, { name, phone, ser
   let client = null;
 
   if (normalizedPhone) {
-    client = await prisma.client.findFirst({
+    client = await db.client.findFirst({
       where: { businessId, phone: normalizedPhone },
     });
   }
 
   if (!client) {
-    client = await prisma.client.findFirst({
+    client = await db.client.findFirst({
       where: {
         businessId,
         name: { equals: trimmedName, mode: 'insensitive' },
@@ -29,7 +30,7 @@ export async function upsertClientFromInteraction(businessId, { name, phone, ser
     return client;
   }
 
-  return prisma.client.create({
+  return db.client.create({
     data: {
       businessId,
       name: trimmedName,

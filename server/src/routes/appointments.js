@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireBusinessContext } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
-import { appointmentStatusFromUi, formatDateOnly } from '../lib/utils.js';
+import { appointmentStatusFromUi, nowInBusinessTz, parseDateOnly, timeToMinutes } from '../lib/utils.js';
 import {
   completeAppointment,
   listAppointments,
@@ -20,8 +20,8 @@ const createSchema = z.object({
   clientPhone: z.string().optional(),
   serviceId: z.string().uuid(),
   employeeId: z.string().uuid(),
-  appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/),
+  appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida.'),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (usa HH:MM).'),
 });
 
 const patchSchema = z.object({
@@ -41,7 +41,8 @@ router.get('/', async (req, res, next) => {
       from: req.query.from?.toString(),
       to: req.query.to?.toString(),
       status,
-      employeeId: req.query.employeeId?.toString(),
+      // Un empleado solo ve sus propias citas.
+      employeeId: req.user.role === 'employee' ? req.user.id : req.query.employeeId?.toString(),
     });
 
     res.json({ appointments });
@@ -53,6 +54,13 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createSchema.parse(req.body);
+    if (req.user.role === 'employee') data.employeeId = req.user.id;
+
+    const date = parseDateOnly(data.appointmentDate);
+    const now = nowInBusinessTz();
+    if (data.appointmentDate < now.date || (data.appointmentDate === now.date && data.startTime < now.time)) {
+      throw createError(400, 'No se pueden crear citas en el pasado.', 'PAST_APPOINTMENT');
+    }
 
     const [service, employee] = await Promise.all([
       prisma.service.findFirst({ where: { id: data.serviceId, businessId: req.businessId, isActive: true } }),
@@ -62,12 +70,28 @@ router.post('/', async (req, res, next) => {
     if (!service) throw createError(404, 'Servicio no encontrado.', 'NOT_FOUND');
     if (!employee) throw createError(404, 'Empleado no encontrado.', 'NOT_FOUND');
 
+    const sameDay = await prisma.appointment.findMany({
+      where: {
+        businessId: req.businessId,
+        employeeId: employee.id,
+        appointmentDate: date,
+        status: { not: 'cancelled' },
+      },
+      include: { service: true },
+    });
+    const newStart = timeToMinutes(data.startTime);
+    const newEnd = newStart + service.durationMinutes;
+    const overlaps = sameDay.some((a) => {
+      const start = timeToMinutes(a.startTime);
+      return newStart < start + a.service.durationMinutes && start < newEnd;
+    });
+    if (overlaps) {
+      throw createError(409, 'El barbero ya tiene una cita en ese horario.', 'APPOINTMENT_CONFLICT');
+    }
+
     const client = await upsertClientFromInteraction(req.businessId, {
       name: data.clientName,
       phone: data.clientPhone || '',
-      serviceName: service.name,
-      amountCents: service.priceCents,
-      date: new Date(`${data.appointmentDate}T00:00:00.000Z`),
     });
 
     const appointment = await prisma.appointment.create({
@@ -76,7 +100,7 @@ router.post('/', async (req, res, next) => {
         clientId: client?.id || null,
         serviceId: service.id,
         employeeId: employee.id,
-        appointmentDate: new Date(`${data.appointmentDate}T00:00:00.000Z`),
+        appointmentDate: date,
         startTime: data.startTime,
         status: 'pending',
         clientName: data.clientName.trim(),
@@ -102,6 +126,9 @@ router.patch('/:id', async (req, res, next) => {
       where: { id: req.params.id, businessId: req.businessId },
     });
     if (!existing) throw createError(404, 'Cita no encontrada.', 'NOT_FOUND');
+    if (req.user.role === 'employee' && existing.employeeId !== req.user.id) {
+      throw createError(403, 'No tienes permiso para modificar esta cita.', 'FORBIDDEN');
+    }
 
     if (status === 'completed') {
       const completed = await completeAppointment(req.params.id, req.businessId, data.paymentMethod || 'cash');

@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.*
+!.env.example
+tests
+scripts
+vitest.config.js
+Dockerfile
+*.log

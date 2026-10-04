@@ -92,6 +92,7 @@ export const api = {
   createProduct: (body) => request('/products', { method: 'POST', body: JSON.stringify(body) }),
   updateProduct: (id, body) => request(`/products/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProduct: (id) => request(`/products/${id}`, { method: 'DELETE' }),
+  adjustProductStock: (id, body) => request(`/products/${id}/adjust-stock`, { method: 'POST', body: JSON.stringify(body) }),
 
   listAppointments: (params = {}) => {
     const q = new URLSearchParams(params).toString();
@@ -124,16 +125,8 @@ export const api = {
   },
 };
 
+// Fecha local (YYYY-MM-DD). toISOString() usa UTC y en la noche de Colombia ya marca el día siguiente.
 export function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export function uiStatusToApi(estado) {
-  const map = {
-    Pendiente: 'pending',
-    Confirmada: 'confirmed',
-    Finalizada: 'completed',
-    Cancelada: 'cancelled',
-  };
-  return map[estado] || estado;
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

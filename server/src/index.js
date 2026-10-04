@@ -2,10 +2,12 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { bootstrapMasterUser } from './lib/bootstrapMaster.js';
 import { prisma } from './lib/prisma.js';
+import { assertJwtSecret } from './lib/jwt.js';
 
 const PORT = Number(process.env.PORT || 3001);
 
 async function main() {
+  assertJwtSecret();
   await bootstrapMasterUser();
 
   const app = createApp();

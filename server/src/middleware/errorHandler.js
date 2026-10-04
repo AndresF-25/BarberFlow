@@ -1,12 +1,17 @@
 export function errorHandler(err, _req, res, _next) {
-  console.error(err);
-
   if (err.name === 'ZodError') {
     return res.status(400).json({
       error: err.errors?.[0]?.message || 'Datos inválidos.',
       code: 'VALIDATION_ERROR',
     });
   }
+
+  // Los errores con `status` (4xx) son respuestas esperadas de la API: no se registran en el log.
+  if (err.status && err.status < 500) {
+    return res.status(err.status).json({ error: err.message, code: err.code });
+  }
+
+  console.error(err);
 
   if (err.status) {
     return res.status(err.status).json({ error: err.message, code: err.code });

@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { appointmentStatusToUi, formatDateOnly } from '../lib/utils.js';
+import { appointmentStatusToUi, formatDateOnly, parseDateOnly } from '../lib/utils.js';
 import { upsertClientFromInteraction } from './clientService.js';
 
 export function mapAppointmentToUi(appt) {
@@ -52,10 +52,7 @@ export async function completeAppointment(appointmentId, businessId, paymentMeth
       const client = await upsertClientFromInteraction(businessId, {
         name: appt.clientName,
         phone: appt.clientPhone,
-        serviceName: appt.service.name,
-        amountCents: appt.service.priceCents,
-        date: appt.appointmentDate,
-      });
+      }, tx);
       clientId = client?.id || null;
     }
 
@@ -94,11 +91,11 @@ export async function listAppointments(businessId, { from, to, date, status, emp
   const where = { businessId };
 
   if (date) {
-    where.appointmentDate = new Date(`${date}T00:00:00.000Z`);
+    where.appointmentDate = parseDateOnly(date);
   } else if (from || to) {
     where.appointmentDate = {};
-    if (from) where.appointmentDate.gte = new Date(`${from}T00:00:00.000Z`);
-    if (to) where.appointmentDate.lte = new Date(`${to}T00:00:00.000Z`);
+    if (from) where.appointmentDate.gte = parseDateOnly(from);
+    if (to) where.appointmentDate.lte = parseDateOnly(to);
   }
 
   if (status) where.status = status;

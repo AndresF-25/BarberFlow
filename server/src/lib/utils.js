@@ -22,13 +22,12 @@ export function appointmentStatusFromUi(status) {
 
 export function publicUser(user) {
   if (!user) return null;
-  const { passwordHash, ...rest } = user;
   return {
-    id: rest.id,
-    name: rest.name,
-    email: rest.email,
-    role: rest.role,
-    businessId: rest.businessId,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    businessId: user.businessId,
   };
 }
 
@@ -58,8 +57,48 @@ export function formatDateOnly(date) {
 
 export function parseDateOnly(str) {
   const d = new Date(`${str}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) throw new Error('Fecha inválida');
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== str) {
+    const err = new Error('Fecha inválida.');
+    err.status = 400;
+    err.code = 'INVALID_DATE';
+    throw err;
+  }
   return d;
+}
+
+const BUSINESS_TZ = process.env.BUSINESS_TZ || 'America/Bogota';
+
+// Fecha (YYYY-MM-DD) y hora (HH:MM) actuales en la zona horaria del negocio.
+export function nowInBusinessTz() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((p) => p.type === type).value;
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${get('hour')}:${get('minute')}`,
+  };
+}
+
+// Fecha (YYYY-MM-DD) de un instante, vista desde la zona horaria del negocio.
+export function businessDateOf(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+export function timeToMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
 }
 
 export function startOfDay(dateStr) {

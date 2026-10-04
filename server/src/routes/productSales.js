@@ -72,13 +72,20 @@ router.post('/', async (req, res, next) => {
       const client = await upsertClientFromInteraction(req.businessId, {
         name: clientName,
         phone: '',
-        serviceName: product.name,
-        amountCents: product.salePriceCents * data.quantity,
       });
       clientId = client?.id || null;
     }
 
     const sale = await prisma.$transaction(async (tx) => {
+      // Descuento atómico: si dos ventas simultáneas se disputan el último stock, solo una pasa.
+      const discounted = await tx.product.updateMany({
+        where: { id: product.id, businessId: req.businessId, isActive: true, stock: { gte: data.quantity } },
+        data: { stock: { decrement: data.quantity } },
+      });
+      if (discounted.count === 0) {
+        throw createError(400, 'Stock insuficiente.', 'INSUFFICIENT_STOCK');
+      }
+
       const created = await tx.productSale.create({
         data: {
           businessId: req.businessId,
@@ -91,11 +98,6 @@ router.post('/', async (req, res, next) => {
           soldById: req.user.id,
         },
         include: { product: true },
-      });
-
-      await tx.product.update({
-        where: { id: product.id },
-        data: { stock: { decrement: data.quantity } },
       });
 
       await tx.stockAdjustment.create({

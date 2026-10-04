@@ -18,7 +18,9 @@ export default function Register() {
 
     if (form.name.trim().length < 2) return setError('Ingresá tu nombre completo.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError('Ingresá un correo válido.');
-    if (form.password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.');
+    if (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+      return setError('La contraseña debe tener al menos 8 caracteres, con letras y números.');
+    }
 
     setSubmitting(true);
     const result = await register(form);
@@ -56,7 +58,7 @@ export default function Register() {
           </div>
           <div>
             <label htmlFor="password">Contraseña</label>
-            <input id="password" type="password" placeholder="Mínimo 6 caracteres" value={form.password} onChange={onChange('password')} />
+            <input id="password" type="password" placeholder="Mínimo 8 caracteres, letras y números" value={form.password} onChange={onChange('password')} />
           </div>
           <button type="submit" className="btn-submit" disabled={submitting}>
             {submitting ? 'Creando cuenta…' : 'Crear cuenta gratis'}

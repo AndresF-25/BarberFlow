@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { createError } from '../middleware/errorHandler.js';
 import { publicBusiness, publicUser } from '../lib/utils.js';
 
 const router = Router();
@@ -28,7 +29,13 @@ router.get('/businesses', async (req, res, next) => {
 router.get('/users', async (req, res, next) => {
   try {
     const where = {};
-    if (req.query.role) where.role = req.query.role.toString();
+    if (req.query.role) {
+      const role = req.query.role.toString();
+      if (!['master', 'owner', 'employee'].includes(role)) {
+        throw createError(400, 'Rol inválido.', 'VALIDATION_ERROR');
+      }
+      where.role = role;
+    }
     if (req.query.businessId) where.businessId = req.query.businessId.toString();
 
     const users = await prisma.user.findMany({

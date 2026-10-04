@@ -2,17 +2,23 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { signToken } from '../lib/jwt.js';
-import { hashPassword, verifyPassword } from '../lib/password.js';
+import { DUMMY_HASH, hashPassword, verifyPassword } from '../lib/password.js';
 import { authenticate, requireBusinessContext, requireRole } from '../middleware/auth.js';
-import { createError } from '../middleware/errorHandler.js';
 import { pickStaffColor, publicBusiness, publicUser } from '../lib/utils.js';
 
 const router = Router();
 
+const passwordSchema = z
+  .string()
+  .min(8, 'La contraseña debe tener al menos 8 caracteres.')
+  .max(72, 'La contraseña es demasiado larga.')
+  .regex(/[A-Za-z]/, 'La contraseña debe incluir al menos una letra.')
+  .regex(/\d/, 'La contraseña debe incluir al menos un número.');
+
 const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordSchema,
 });
 
 const loginSchema = z.object({
@@ -23,7 +29,7 @@ const loginSchema = z.object({
 const employeeSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordSchema,
   specialty: z.string().optional(),
 });
 
@@ -83,7 +89,8 @@ router.post('/login', async (req, res, next) => {
       include: { business: true },
     });
 
-    if (!user || !(await verifyPassword(data.password, user.passwordHash))) {
+    const passwordOk = await verifyPassword(data.password, user?.passwordHash || DUMMY_HASH);
+    if (!user || !passwordOk) {
       return res.status(401).json({ ok: false, error: 'Correo o contraseña incorrectos.' });
     }
 
