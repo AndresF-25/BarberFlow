@@ -1,0 +1,239 @@
+{
+  "meta": {
+    "domain": "demo.barberflow.com",
+    "password": "Demo1234",
+    "seed": 20261007,
+    "utcOffset": "-05:00",
+    "nota": "Datos de demostración y prueba. Fechas relativas: day=0 es hoy, -3 hace 3 días, 1 mañana. Cargar con: npm run db:seed:demo (en server/). Todos los correos terminan en @demo.barberflow.com; el limpiador de pruebas (@test.local) no los toca."
+  },
+
+  "master": { "email": "master", "name": "Admin BarberFlow" },
+
+  "businesses": [
+    {
+      "key": "navaja",
+      "name": "Barbería La Navaja",
+      "description": "Barbería clásica en Chapinero: cortes, barba y productos de cuidado.",
+      "phone": "3105550101",
+      "address": "Cra 13 #63-20, Bogotá",
+      "owner": { "email": "dueno.navaja", "name": "Andrés Morales" },
+
+      "staff": [
+        { "key": "julian", "email": "barbero1.navaja", "name": "Julián Patiño", "specialty": "Fade y barba", "active": true },
+        { "key": "camilo", "email": "barbero2.navaja", "name": "Camilo Reyes", "specialty": "Cortes clásicos", "active": true },
+        { "key": "sebas", "email": "barbero3.navaja", "name": "Sebastián Ortiz", "specialty": "Tratamientos", "active": false }
+      ],
+
+      "services": [
+        { "key": "corte", "nombre": "Corte clásico", "categoria": "Cortes", "precio": 30000, "duracion": 45 },
+        { "key": "fade", "nombre": "Fade con degradado", "categoria": "Cortes", "precio": 38000, "duracion": 60 },
+        { "key": "infantil", "nombre": "Corte infantil", "categoria": "Cortes", "precio": 22000, "duracion": 30 },
+        { "key": "barba", "nombre": "Perfilado de barba", "categoria": "Barba", "precio": 25000, "duracion": 30 },
+        { "key": "afeitado", "nombre": "Afeitado con toalla caliente", "categoria": "Barba", "precio": 32000, "duracion": 45 },
+        { "key": "combo", "nombre": "Corte y barba", "categoria": "Combos", "precio": 52000, "duracion": 60 },
+        { "key": "tratamiento", "nombre": "Tratamiento capilar", "categoria": "Tratamientos", "precio": 60000, "duracion": 75 },
+        { "key": "paquete", "nombre": "Paquete mensual (descontinuado)", "categoria": "Combos", "precio": 120000, "duracion": 90, "active": false }
+      ],
+
+      "products": [
+        { "key": "cera", "nombre": "Cera mate", "categoria": "Styling", "stock": 2, "stockMin": 5, "unidad": "unidad", "precioVenta": 28000, "precioCosto": 15000 },
+        { "key": "aceite", "nombre": "Aceite para barba", "categoria": "Cuidado de barba", "stock": 14, "stockMin": 4, "unidad": "unidad", "precioVenta": 35000, "precioCosto": 18000 },
+        { "key": "shampoo", "nombre": "Shampoo mentolado", "categoria": "Cuidado capilar", "stock": 9, "stockMin": 4, "unidad": "unidad", "precioVenta": 22000, "precioCosto": 11000 },
+        { "key": "pomada", "nombre": "Pomada de fijación fuerte", "categoria": "Styling", "stock": 0, "stockMin": 3, "unidad": "unidad", "precioVenta": 30000, "precioCosto": 16000 },
+        { "key": "cerveza", "nombre": "Cerveza artesanal", "categoria": "Bebidas", "stock": 24, "stockMin": 6, "unidad": "unidad", "precioVenta": 9000, "precioCosto": 5000 },
+        { "key": "peine", "nombre": "Peine de madera", "categoria": "Insumos", "stock": 5, "stockMin": 2, "unidad": "unidad", "precioVenta": 15000, "precioCosto": 7000, "active": false }
+      ],
+
+      "clients": [
+        { "key": "sebastian", "name": "Sebastián Rojas", "phone": "3001110010", "expect": { "etiqueta": "VIP", "visitas": 16 } },
+        { "key": "villa", "name": "Andrés Villa", "phone": "3001110011", "expect": { "etiqueta": "Inactivo", "visitas": 16 } },
+        { "key": "mateo", "name": "Mateo Ruiz", "phone": "3001110012", "expect": { "etiqueta": "Frecuente", "visitas": 6 } },
+        { "key": "luis", "name": "Luis Pardo", "phone": "3001110013", "expect": { "etiqueta": "Frecuente", "visitas": 3 } },
+        { "key": "carlos", "name": "Carlos Gómez", "phone": "3001110001", "expect": { "etiqueta": "Frecuente", "visitas": 4 } },
+        { "key": "esteban", "name": "Esteban Cruz", "phone": "3001110014", "expect": { "etiqueta": "Inactivo", "visitas": 3 } },
+        { "key": "tomas", "name": "Tomás León", "phone": "3001110015", "expect": { "etiqueta": "Nuevo", "visitas": 1 } },
+        { "key": "ivan", "name": "Iván Becerra", "phone": "3001110016", "expect": { "etiqueta": "Inactivo", "visitas": 1 } },
+        { "key": "pablo", "name": "Pablo Duarte", "phone": "3001110017", "expect": { "etiqueta": "Nuevo", "visitas": 0 } },
+        { "key": "hugo", "name": "Hugo Páez", "phone": "3001110018", "expect": { "etiqueta": "Nuevo", "visitas": 0 } },
+        { "key": "daniel", "name": "Daniel Ossa", "phone": "3001110019", "expect": { "etiqueta": "Nuevo", "visitas": 1 } },
+        { "key": "felipe", "name": "Felipe Salas", "phone": "3001110020", "expect": { "etiqueta": "Frecuente", "visitas": 4 } },
+        { "key": "paso", "name": "Cliente de paso", "phone": "", "expect": { "etiqueta": "Nuevo", "visitas": 1 } },
+        { "key": "alejandro", "name": "Alejandro Nieto", "phone": "3001110031" },
+        { "key": "santiago", "name": "Santiago Mejía", "phone": "3001110032" },
+        { "key": "jhon", "name": "Jhon Zapata", "phone": "3001110033" },
+        { "key": "nicolas", "name": "Nicolás Vera", "phone": "3001110034" },
+        { "key": "brayan", "name": "Brayan Quintero", "phone": "3001110035" },
+        { "key": "kevin", "name": "Kevin Ardila", "phone": "3001110036" },
+        { "key": "mauricio", "name": "Mauricio Salazar", "phone": "3001110037" },
+        { "key": "ricardo", "name": "Ricardo Cortés", "phone": "3001110038" }
+      ],
+
+      "series": [
+        { "client": "sebastian", "service": "fade", "staff": "julian", "start": -160, "step": 10, "count": 16, "time": "11:00", "pay": ["card", "cash"] },
+        { "client": "villa", "service": "corte", "staff": "camilo", "start": -160, "step": 5, "count": 16, "time": "11:00", "pay": ["cash", "cash", "transfer"] },
+        { "client": "mateo", "service": "combo", "staff": "julian", "start": -70, "step": 12, "count": 6, "time": "14:00", "pay": ["card", "cash"] }
+      ],
+
+      "appointments": [
+        { "client": "carlos", "service": "combo", "staff": "julian", "day": -30, "time": "10:00", "pay": "card" },
+        { "client": "carlos", "service": "corte", "staff": "camilo", "day": -14, "time": "10:00", "pay": "cash" },
+        { "client": "tomas", "service": "corte", "staff": "camilo", "day": -2, "time": "16:00", "pay": "cash" },
+        { "client": "ivan", "service": "corte", "staff": "julian", "day": -60, "time": "16:30", "pay": "transfer" },
+        { "client": "felipe", "service": "barba", "staff": "julian", "day": -25, "time": "16:00", "pay": "cash" },
+        { "client": "felipe", "service": "corte", "staff": "camilo", "day": -9, "time": "16:00", "pay": "card" },
+        { "client": "paso", "service": "corte", "staff": "julian", "day": -3, "time": "17:30", "pay": "cash" },
+        { "client": "esteban", "service": "fade", "staff": "julian", "day": -120, "time": "15:30", "pay": "cash" },
+        { "client": "esteban", "service": "corte", "staff": "julian", "day": -80, "time": "15:30", "pay": "card" },
+        { "client": "esteban", "service": "combo", "staff": "camilo", "day": -45, "time": "15:30", "pay": "cash" },
+        { "client": "luis", "service": "corte", "staff": "camilo", "day": -40, "time": "14:00", "pay": "cash" },
+        { "client": "luis", "service": "barba", "staff": "camilo", "day": -20, "time": "14:00", "pay": "cash" },
+        { "client": "luis", "service": "corte", "staff": "camilo", "day": -6, "time": "14:00", "pay": "card" },
+        { "client": "jhon", "service": "corte", "staff": "sebas", "day": -150, "time": "10:00", "pay": "cash" },
+        { "client": "kevin", "service": "barba", "staff": "sebas", "day": -140, "time": "10:00", "pay": "cash" },
+        { "client": "ricardo", "service": "corte", "staff": "sebas", "day": -130, "time": "10:00", "pay": "transfer" },
+
+        { "client": "carlos", "service": "combo", "staff": "julian", "day": 0, "time": "09:00", "status": "completed", "pay": "card" },
+        { "client": "alejandro", "service": "corte", "staff": "camilo", "day": 0, "time": "09:00", "status": "completed", "pay": "cash" },
+        { "client": "santiago", "service": "fade", "staff": "camilo", "day": 0, "time": "10:00", "status": "completed", "pay": "transfer" },
+        { "client": "jhon", "service": "corte", "staff": "julian", "day": 0, "time": "10:30", "status": "completed", "pay": "cash" },
+        { "client": "nicolas", "service": "barba", "staff": "julian", "day": 0, "time": "12:00", "status": "confirmed" },
+        { "client": "brayan", "service": "tratamiento", "staff": "camilo", "day": 0, "time": "12:00", "status": "confirmed" },
+        { "client": "kevin", "service": "corte", "staff": "julian", "day": 0, "time": "14:00", "status": "pending" },
+        { "client": "mauricio", "service": "afeitado", "staff": "camilo", "day": 0, "time": "15:30", "status": "pending" },
+        { "client": "hugo", "service": "corte", "staff": "julian", "day": 0, "time": "17:00", "status": "cancelled" },
+
+        { "client": "pablo", "service": "corte", "staff": "julian", "day": 1, "time": "10:00", "status": "pending" },
+        { "client": "nicolas", "service": "fade", "staff": "camilo", "day": 1, "time": "10:00", "status": "confirmed" },
+        { "client": "alejandro", "service": "combo", "staff": "julian", "day": 1, "time": "11:00", "status": "confirmed" },
+        { "client": "santiago", "service": "barba", "staff": "camilo", "day": 1, "time": "12:00", "status": "pending" },
+        { "client": "jhon", "service": "corte", "staff": "julian", "day": 3, "time": "09:30", "status": "pending" },
+        { "client": "kevin", "service": "corte", "staff": "camilo", "day": 3, "time": "16:00", "status": "pending" },
+        { "client": "ricardo", "service": "tratamiento", "staff": "julian", "day": 5, "time": "15:00", "status": "confirmed" },
+        { "client": "brayan", "service": "afeitado", "staff": "camilo", "day": 7, "time": "10:00", "status": "pending" }
+      ],
+
+      "bulk": {
+        "count": 140,
+        "dayRange": [-175, -1],
+        "skipWeekdays": [0],
+        "clients": ["alejandro", "santiago", "jhon", "nicolas", "brayan", "kevin", "mauricio", "ricardo"],
+        "services": ["corte", "corte", "fade", "infantil", "barba", "afeitado", "combo", "combo", "tratamiento"],
+        "staff": ["julian", "camilo"],
+        "times": ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"],
+        "pay": ["cash", "cash", "cash", "card", "card", "transfer"]
+      },
+
+      "sales": [
+        { "product": "aceite", "qty": 1, "day": -4, "client": "daniel", "seller": "camilo" },
+        { "product": "cera", "qty": 1, "day": -18, "client": "felipe", "seller": "julian" },
+        { "product": "aceite", "qty": 1, "day": -7, "client": "felipe", "seller": "owner" },
+        { "product": "shampoo", "qty": 1, "day": -11, "client": "carlos", "seller": "julian" },
+        { "product": "cerveza", "qty": 2, "day": -1, "seller": "owner" },
+        { "product": "cerveza", "qty": 3, "day": -6, "seller": "camilo" },
+        { "product": "cerveza", "qty": 1, "day": -13, "seller": "owner" },
+        { "product": "cerveza", "qty": 4, "day": -30, "seller": "owner" },
+        { "product": "cerveza", "qty": 2, "day": -45, "seller": "julian" },
+        { "product": "pomada", "qty": 2, "day": -40, "seller": "owner" },
+        { "product": "pomada", "qty": 1, "day": -55, "seller": "julian" },
+        { "product": "cera", "qty": 3, "day": -22, "seller": "owner" },
+        { "product": "cera", "qty": 2, "day": -35, "seller": "camilo" },
+        { "product": "cera", "qty": 1, "day": -3, "seller": "owner" },
+        { "product": "aceite", "qty": 2, "day": -70, "seller": "julian" },
+        { "product": "shampoo", "qty": 2, "day": -90, "seller": "owner" },
+        { "product": "shampoo", "qty": 1, "day": -120, "seller": "owner" },
+        { "product": "shampoo", "qty": 1, "day": 0, "client": "jhon", "seller": "julian" }
+      ],
+
+      "adjustments": [
+        { "product": "cera", "delta": -1, "reason": "correction", "day": -5 },
+        { "product": "aceite", "delta": 12, "reason": "manual", "day": -80 },
+        { "product": "cerveza", "delta": 24, "reason": "manual", "day": -100 }
+      ]
+    },
+
+    {
+      "key": "fade",
+      "name": "Barbería El Fade",
+      "description": "Barbería de barrio en Suba. Mismo catálogo de nombres que La Navaja, para probar aislamiento.",
+      "phone": "3205550202",
+      "address": "Av. Suba #115-30, Bogotá",
+      "owner": { "email": "dueno.fade", "name": "Marcos Ibáñez" },
+
+      "staff": [
+        { "key": "oscar", "email": "barbero1.fade", "name": "Óscar Lemus", "specialty": "Fade", "active": true }
+      ],
+
+      "services": [
+        { "key": "corte", "nombre": "Corte clásico", "categoria": "Cortes", "precio": 28000, "duracion": 40 },
+        { "key": "barba", "nombre": "Perfilado de barba", "categoria": "Barba", "precio": 22000, "duracion": 30 },
+        { "key": "combo", "nombre": "Corte y barba", "categoria": "Combos", "precio": 45000, "duracion": 60 }
+      ],
+
+      "products": [
+        { "key": "cera", "nombre": "Cera mate", "categoria": "Styling", "stock": 6, "stockMin": 3, "unidad": "unidad", "precioVenta": 25000, "precioCosto": 13000 },
+        { "key": "aceite", "nombre": "Aceite para barba", "categoria": "Cuidado de barba", "stock": 3, "stockMin": 3, "unidad": "unidad", "precioVenta": 30000, "precioCosto": 16000 }
+      ],
+
+      "clients": [
+        { "key": "carlosb", "name": "Carlos Gómez", "phone": "3001110001", "expect": { "etiqueta": "Nuevo", "visitas": 1 } },
+        { "key": "mario", "name": "Mario Beltrán", "phone": "3002220002", "expect": { "etiqueta": "Frecuente", "visitas": 3 } },
+        { "key": "juan", "name": "Juan Camargo", "phone": "3002220003" },
+        { "key": "dairo", "name": "Dairo Silva", "phone": "3002220004" },
+        { "key": "fabio", "name": "Fabio Lara", "phone": "3002220005" },
+        { "key": "wilmer", "name": "Wilmer Arias", "phone": "3002220006" },
+        { "key": "yeison", "name": "Yeison Cano", "phone": "3002220007" }
+      ],
+
+      "series": [],
+
+      "appointments": [
+        { "client": "carlosb", "service": "corte", "staff": "oscar", "day": -12, "time": "10:00", "pay": "cash" },
+        { "client": "mario", "service": "combo", "staff": "oscar", "day": -9, "time": "11:00", "pay": "card" },
+        { "client": "mario", "service": "barba", "staff": "oscar", "day": -2, "time": "11:00", "pay": "cash" },
+        { "client": "juan", "service": "corte", "staff": "oscar", "day": -20, "time": "15:00", "pay": "transfer" },
+        { "client": "dairo", "service": "corte", "staff": "oscar", "day": -5, "time": "16:00", "pay": "cash" },
+
+        { "client": "fabio", "service": "corte", "staff": "oscar", "day": 0, "time": "10:00", "status": "completed", "pay": "cash" },
+        { "client": "juan", "service": "barba", "staff": "oscar", "day": 0, "time": "14:00", "status": "confirmed" },
+        { "client": "dairo", "service": "corte", "staff": "oscar", "day": 0, "time": "16:30", "status": "pending" },
+        { "client": "carlosb", "service": "combo", "staff": "oscar", "day": 1, "time": "10:00", "status": "pending" }
+      ],
+
+      "bulk": {
+        "count": 20,
+        "dayRange": [-60, -1],
+        "skipWeekdays": [0],
+        "clients": ["wilmer", "yeison"],
+        "services": ["corte", "corte", "barba", "combo"],
+        "staff": ["oscar"],
+        "times": ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"],
+        "pay": ["cash", "cash", "card", "transfer"]
+      },
+
+      "sales": [
+        { "product": "cera", "qty": 2, "day": -8, "client": "mario", "seller": "oscar" },
+        { "product": "aceite", "qty": 1, "day": -3, "seller": "owner" }
+      ],
+
+      "adjustments": []
+    },
+
+    {
+      "key": "nueva",
+      "name": "Barbería Nueva",
+      "description": "Negocio recién registrado, sin datos: sirve para probar estados vacíos y analíticas en cero.",
+      "phone": "",
+      "address": "",
+      "owner": { "email": "dueno.nueva", "name": "Laura Gutiérrez" },
+      "staff": [],
+      "services": [],
+      "products": [],
+      "clients": [],
+      "series": [],
+      "appointments": [],
+      "bulk": null,
+      "sales": [],
+      "adjustments": []
+    }
+  ]
+}

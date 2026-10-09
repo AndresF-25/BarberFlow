@@ -11,6 +11,10 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "test:cleanup": "node scripts/cleanup-test-data.js",
+    "db:seed:demo": "node scripts/seed-demo.js",
+    "db:seed:demo:reset": "node scripts/seed-demo.js --reset",
+    "pretest:demo": "node scripts/seed-demo.js",
+    "test:demo": "vitest run --config vitest.demo.config.js",
     "test": "vitest run",
     "db:deploy": "prisma migrate deploy"
   },
