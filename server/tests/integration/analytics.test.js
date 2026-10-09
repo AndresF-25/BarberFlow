@@ -103,7 +103,7 @@ describe.skipIf(!dbUp)('analíticas', () => {
 
     it('alertas: stock bajo con destino a inventario', async () => {
       const { alerts } = (await get(owner.token, '/alerts')).body;
-      expect(alerts.find((a) => a.id === 'stock')).toMatchObject({ destino: 'inventario', prioridad: 'media' });
+      expect(alerts.find((a) => a.id === 'stock')).toMatchObject({ destino: 'inventario', prioridad: 'alta' }); // la venta del beforeAll agota el único producto: urgente
     });
   });
 

@@ -6,9 +6,10 @@ describe.skipIf(!dbUp)('inventario y ventas', () => {
   let empleado;
   let rival;
 
+  let n = 0; // los nombres de producto son únicos por negocio
   const nuevoProducto = async (extra = {}) => {
     const res = await api().post('/api/v1/products').set(auth(owner.token)).send({
-      nombre: 'Cera', categoria: 'Styling', stock: 5, stockMinimo: 2, unidad: 'unidad', precioVenta: 28000, precioCosto: 15000, ...extra,
+      nombre: `Cera ${++n}`, categoria: 'Styling', stock: 5, stockMinimo: 2, unidad: 'unidad', precioVenta: 28000, precioCosto: 15000, ...extra,
     });
     if (res.status !== 201) throw new Error(`producto falló: ${res.status} ${JSON.stringify(res.body)}`);
     return res.body.product;

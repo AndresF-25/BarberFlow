@@ -107,7 +107,7 @@ describe.skipIf(!apiUp)('Dashboard (API real)', () => {
     // Clientes
     await nav(user, 'Clientes');
     expect(await screen.findByText('Cliente Tres')).toBeInTheDocument();
-    await user.click(screen.getAllByRole('button', { name: 'Ver historial' })[0]);
+    await user.click(screen.getAllByRole('button', { name: /Ver historial/ })[0]);
     expect(await screen.findByText('Perfil del cliente')).toBeInTheDocument();
     await user.click(document.querySelector('.fixed.inset-0.z-50.flex.justify-end')); // cerrar drawer
 
@@ -297,6 +297,7 @@ describe.skipIf(!apiUp)('Dashboard (API real)', () => {
     await waitFor(async () => expect(await estadoApi('Cliente Final')).toBe('Finalizada'));
 
     await user.click(within(await rowOf('Cliente Cancela')).getByTitle('Cancelar'));
+    await user.click(await screen.findByRole('button', { name: 'Cancelar cita' })); // diálogo de confirmación
     await waitFor(async () => expect(await estadoApi('Cliente Cancela')).toBe('Cancelada'));
 
     // las citas finalizadas/canceladas ya no ofrecen acciones
