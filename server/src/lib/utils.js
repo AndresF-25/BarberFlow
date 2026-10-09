@@ -96,6 +96,41 @@ export function businessDateOf(date) {
   }).format(date);
 }
 
+// Hora del negocio (HH:MM) de un instante.
+export function businessTimeOf(date) {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: BUSINESS_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
+}
+
+// Desfase (ms) de la zona del negocio respecto de UTC en un instante: local = UTC + desfase.
+function businessOffsetMs(instant) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).formatToParts(instant);
+  const get = (type) => Number(parts.find((p) => p.type === type).value);
+  const localAsUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  return localAsUtc - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+// Instante en que empieza el día `dateStr` (YYYY-MM-DD) en la zona del negocio (00:00 locales).
+export function businessDayStart(dateStr) {
+  const base = parseDateOnly(dateStr).getTime();
+  const first = base - businessOffsetMs(new Date(base));
+  return new Date(base - businessOffsetMs(new Date(first)));
+}
+
+// Último milisegundo del día `dateStr` en la zona del negocio.
+export function businessDayEnd(dateStr) {
+  return new Date(businessDayStart(addDays(dateStr, 1)).getTime() - 1);
+}
+
+const MESES_CORTOS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+// «7 oct 2026» (con año) o «7 oct» (sin él) a partir de YYYY-MM-DD; siempre igual, sin depender del idioma del servidor.
+export function formatDateEs(dateStr, { year = true } = {}) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return `${d} ${MESES_CORTOS_ES[m - 1]}${year ? ` ${y}` : ''}`;
+}
+
 export function timeToMinutes(hhmm) {
   const [h, m] = hhmm.split(':').map(Number);
   return h * 60 + m;
@@ -142,7 +177,7 @@ export function endOfMonth(dateStr) {
   return formatDateOnly(d);
 }
 
-const STAFF_COLORS = ['#C79A5B', '#7C97AC', '#7FA07A', '#BD6552', '#D0A24E'];
+const STAFF_COLORS = ['#007A6E', '#4F46E5', '#D9930B', '#C62F36', '#0E7490'];
 
 export function pickStaffColor(index) {
   return STAFF_COLORS[index % STAFF_COLORS.length];

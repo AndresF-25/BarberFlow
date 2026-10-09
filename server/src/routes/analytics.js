@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authenticate, requireBusinessContext, requireRole } from '../middleware/auth.js';
 import {
   getAlerts,
@@ -11,7 +12,13 @@ const router = Router();
 
 router.use(authenticate, requireBusinessContext, requireRole('owner'));
 
-const periodOf = (req) => (req.query.period === 'month' ? 'month' : 'week');
+// `period` es «week» (por defecto) o «month»; cualquier otra cosa es un error, no se toma «week» en silencio.
+const first = (v) => (Array.isArray(v) ? v[0] : v);
+const periodSchema = z.preprocess(
+  (v) => (first(v) === '' ? undefined : first(v)),
+  z.enum(['week', 'month'], { errorMap: () => ({ message: 'Período no válido. Usa week o month.' }) }).default('week'),
+);
+const periodOf = (req) => periodSchema.parse(req.query.period);
 
 router.get('/dashboard', async (req, res, next) => {
   try {

@@ -61,6 +61,8 @@ model User {
   name         String
   role         UserRole
   isActive     Boolean  @default(true) @map("is_active")
+  /// Los tokens emitidos antes de este instante dejan de valer (cambio o restablecimiento de contraseña, o baja).
+  sessionsValidFrom DateTime? @map("sessions_valid_from")
   createdAt    DateTime @default(now()) @map("created_at")
 
   business              Business?            @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -231,4 +233,14 @@ model StockAdjustment {
 
   @@index([productId])
   @@map("stock_adjustments")
+}
+
+/// Sesiones cerradas con "Cerrar sesión": el `jti` del token queda invalidado hasta que caduque.
+/// Sin clave foránea a propósito: la fila solo importa mientras el token siga vigente.
+model RevokedToken {
+  jti       String   @id
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("revoked_tokens")
 }

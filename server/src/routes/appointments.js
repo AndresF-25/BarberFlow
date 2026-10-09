@@ -3,21 +3,42 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireBusinessContext } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
-import { appointmentStatusFromUi, nowInBusinessTz, parseDateOnly, timeToMinutes } from '../lib/utils.js';
+import { addDays, appointmentStatusFromUi, nowInBusinessTz, parseDateOnly, timeToMinutes } from '../lib/utils.js';
 import {
-  completeAppointment,
+  changeAppointment,
+  createAppointmentIfFree,
   listAppointments,
   mapAppointmentToUi,
 } from '../services/appointmentService.js';
-import { upsertClientFromInteraction } from '../services/clientService.js';
+import { cleanName } from '../services/clientService.js';
 
 const router = Router();
 
 router.use(authenticate, requireBusinessContext);
 
+const MAX_DAYS_AHEAD = 365; // no se agenda a más de un año vista
+const MINUTES_PER_DAY = 24 * 60;
+
+const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled', 'Pendiente', 'Confirmada', 'Finalizada', 'Cancelada'];
+const statusSchema = z.enum(STATUSES, { errorMap: () => ({ message: 'Estado no válido. Usa Pendiente, Confirmada, Finalizada o Cancelada.' }) });
+
+const first = (v) => (Array.isArray(v) ? v[0] : v);
+
+const listQuerySchema = z.object({
+  date: z.preprocess(first, z.string().optional()),
+  from: z.preprocess(first, z.string().optional()),
+  to: z.preprocess(first, z.string().optional()),
+  status: z.preprocess(first, statusSchema.optional()),
+  employeeId: z.preprocess(first, z.string().optional()),
+});
+
 const createSchema = z.object({
-  clientName: z.string().min(1),
-  clientPhone: z.string().optional(),
+  clientName: z.string().transform(cleanName).pipe(
+    z.string().min(1, 'El nombre del cliente es obligatorio.').max(80, 'El nombre del cliente es demasiado largo (máximo 80 caracteres).'),
+  ),
+  clientPhone: z.string().trim()
+    .refine((v) => v === '' || /^[0-9+()\-\s]{7,20}$/.test(v), 'El teléfono solo puede tener números, espacios, +, - y paréntesis (7 a 20 caracteres).')
+    .optional(),
   serviceId: z.string().uuid(),
   employeeId: z.string().uuid(),
   appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida.'),
@@ -25,24 +46,21 @@ const createSchema = z.object({
 });
 
 const patchSchema = z.object({
-  status: z.enum(['pending', 'confirmed', 'completed', 'cancelled', 'Pendiente', 'Confirmada', 'Finalizada', 'Cancelada']).optional(),
-  paymentMethod: z.enum(['cash', 'card', 'transfer']).optional(),
+  status: statusSchema.optional(),
+  paymentMethod: z.enum(['cash', 'card', 'transfer'], { errorMap: () => ({ message: 'Método de pago no válido. Usa efectivo, tarjeta o transferencia.' }) }).optional(),
 });
 
 router.get('/', async (req, res, next) => {
   try {
-    let status = req.query.status?.toString();
-    if (status && !['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
-      status = appointmentStatusFromUi(status);
-    }
+    const query = listQuerySchema.parse(req.query);
 
     const appointments = await listAppointments(req.businessId, {
-      date: req.query.date?.toString(),
-      from: req.query.from?.toString(),
-      to: req.query.to?.toString(),
-      status,
+      date: query.date,
+      from: query.from,
+      to: query.to,
+      status: query.status ? appointmentStatusFromUi(query.status) : undefined,
       // Un empleado solo ve sus propias citas.
-      employeeId: req.user.role === 'employee' ? req.user.id : req.query.employeeId?.toString(),
+      employeeId: req.user.role === 'employee' ? req.user.id : query.employeeId,
     });
 
     res.json({ appointments });
@@ -56,10 +74,13 @@ router.post('/', async (req, res, next) => {
     const data = createSchema.parse(req.body);
     if (req.user.role === 'employee') data.employeeId = req.user.id;
 
-    const date = parseDateOnly(data.appointmentDate);
+    parseDateOnly(data.appointmentDate); // 400 si la fecha no existe (30 de febrero…)
     const now = nowInBusinessTz();
     if (data.appointmentDate < now.date || (data.appointmentDate === now.date && data.startTime < now.time)) {
       throw createError(400, 'No se pueden crear citas en el pasado.', 'PAST_APPOINTMENT');
+    }
+    if (data.appointmentDate > addDays(now.date, MAX_DAYS_AHEAD)) {
+      throw createError(400, 'No se puede agendar a más de un año vista.', 'TOO_FAR');
     }
 
     const [service, employee] = await Promise.all([
@@ -70,44 +91,19 @@ router.post('/', async (req, res, next) => {
     if (!service) throw createError(404, 'Servicio no encontrado.', 'NOT_FOUND');
     if (!employee) throw createError(404, 'Empleado no encontrado.', 'NOT_FOUND');
 
-    const sameDay = await prisma.appointment.findMany({
-      where: {
-        businessId: req.businessId,
-        employeeId: employee.id,
-        appointmentDate: date,
-        status: { not: 'cancelled' },
-      },
-      include: { service: true },
-    });
-    const newStart = timeToMinutes(data.startTime);
-    const newEnd = newStart + service.durationMinutes;
-    const overlaps = sameDay.some((a) => {
-      const start = timeToMinutes(a.startTime);
-      return newStart < start + a.service.durationMinutes && start < newEnd;
-    });
-    if (overlaps) {
-      throw createError(409, 'El barbero ya tiene una cita en ese horario.', 'APPOINTMENT_CONFLICT');
+    if (timeToMinutes(data.startTime) + service.durationMinutes > MINUTES_PER_DAY) {
+      throw createError(400, 'La cita terminaría después de medianoche: elige una hora más temprana o un servicio más corto.', 'PAST_MIDNIGHT');
     }
 
-    const client = await upsertClientFromInteraction(req.businessId, {
-      name: data.clientName,
-      phone: data.clientPhone || '',
-    });
-
-    const appointment = await prisma.appointment.create({
-      data: {
-        businessId: req.businessId,
-        clientId: client?.id || null,
-        serviceId: service.id,
-        employeeId: employee.id,
-        appointmentDate: date,
-        startTime: data.startTime,
-        status: 'pending',
-        clientName: data.clientName.trim(),
-        clientPhone: data.clientPhone?.trim() || '',
-        createdById: req.user.id,
-      },
-      include: { service: true, employee: true },
+    const appointment = await createAppointmentIfFree({
+      businessId: req.businessId,
+      userId: req.user.id,
+      service,
+      employee,
+      date: data.appointmentDate,
+      startTime: data.startTime,
+      clientName: data.clientName,
+      clientPhone: data.clientPhone || '',
     });
 
     res.status(201).json({ appointment: mapAppointmentToUi(appointment) });
@@ -119,36 +115,13 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const data = patchSchema.parse(req.body);
-    let status = data.status;
-    if (status) status = appointmentStatusFromUi(status);
-
-    const existing = await prisma.appointment.findFirst({
-      where: { id: req.params.id, businessId: req.businessId },
+    const appointment = await changeAppointment({
+      id: req.params.id,
+      businessId: req.businessId,
+      user: req.user,
+      status: data.status ? appointmentStatusFromUi(data.status) : undefined,
+      paymentMethod: data.paymentMethod,
     });
-    if (!existing) throw createError(404, 'Cita no encontrada.', 'NOT_FOUND');
-    if (req.user.role === 'employee' && existing.employeeId !== req.user.id) {
-      throw createError(403, 'No tienes permiso para modificar esta cita.', 'FORBIDDEN');
-    }
-
-    if (status === 'completed') {
-      const completed = await completeAppointment(req.params.id, req.businessId, data.paymentMethod || 'cash');
-      const full = await prisma.appointment.findUnique({
-        where: { id: completed.id },
-        include: { service: true, employee: true },
-      });
-      return res.json({ appointment: mapAppointmentToUi(full) });
-    }
-
-    if (status === 'cancelled' && existing.status === 'completed') {
-      throw createError(400, 'No se puede cancelar una cita finalizada.', 'INVALID_STATUS');
-    }
-
-    const appointment = await prisma.appointment.update({
-      where: { id: req.params.id },
-      data: { status: status || undefined },
-      include: { service: true, employee: true },
-    });
-
     res.json({ appointment: mapAppointmentToUi(appointment) });
   } catch (err) {
     next(err);

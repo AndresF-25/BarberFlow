@@ -1,9 +1,14 @@
-/* Elimina los datos de prueba: usuarios con correo @test.local y todo lo que cuelga de sus negocios. */
+/* Elimina los datos de prueba: usuarios con correo @test.local y todo lo que cuelga de sus negocios.
+   Con `domain` se limpia otro conjunto de datos (p. ej. @demo.barberflow.com, ver seed-demo.js). */
 export const TEST_DOMAIN = '@test.local';
 
-export async function cleanupTestData(prisma) {
+export async function cleanupTestData(prisma, domain = TEST_DOMAIN) {
+  // Guarda: un dominio vacío o sin "@" borraría usuarios reales.
+  if (typeof domain !== 'string' || !/^@[^@\s]+\.[^@\s]+$/.test(domain)) {
+    throw new Error(`Dominio de limpieza inválido: "${domain}".`);
+  }
   const users = await prisma.user.findMany({
-    where: { email: { endsWith: TEST_DOMAIN } },
+    where: { email: { endsWith: domain } },
     select: { id: true, businessId: true },
   });
   const userIds = users.map((u) => u.id);

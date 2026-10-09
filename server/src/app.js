@@ -12,6 +12,7 @@ import productSaleRoutes from './routes/productSales.js';
 import analyticsRoutes from './routes/analytics.js';
 import masterRoutes from './routes/master.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import './lib/zodEs.js';
 
 export function createApp() {
   const app = express();
@@ -26,20 +27,36 @@ export function createApp() {
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(express.json({ limit: '100kb' }));
 
+  // Al superar un límite se responde con el mismo formato JSON { error, code } que el resto de la API
+  // (antes era texto plano en inglés y el usuario solo veía "Error en la solicitud.").
+  const limitado = (texto) => (_req, res, _next, options) => {
+    const espera = Number(res.getHeader('Retry-After')) || Math.ceil(options.windowMs / 1000);
+    const min = Math.max(1, Math.ceil(espera / 60));
+    res.status(options.statusCode).json({
+      error: `${texto} Vuelve a intentarlo en ${min} ${min === 1 ? 'minuto' : 'minutos'}.`,
+      code: 'RATE_LIMITED',
+      retryAfter: espera,
+    });
+  };
+
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
       max: Number(process.env.RATE_LIMIT_MAX) || 1000,
       standardHeaders: true,
       legacyHeaders: false,
+      handler: limitado('Has hecho demasiadas solicitudes.'),
     }),
   );
 
+  // Freno contra fuerza bruta: solo en las rutas que prueban credenciales. Antes cubría TODO /auth, incluido
+  // /me (que el cliente llama en cada carga de página), y una barbería entera tras una misma IP lo agotaba.
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 100,
     standardHeaders: true,
     legacyHeaders: false,
+    handler: limitado('Demasiados intentos de acceso.'),
   });
 
   app.get('/health', (_req, res) => {
@@ -50,7 +67,8 @@ export function createApp() {
     res.json({ status: 'ok', service: 'barberflow-api', version: '1' });
   });
 
-  app.use('/api/v1/auth', authLimiter, authRoutes);
+  app.post(['/api/v1/auth/login', '/api/v1/auth/register', '/api/v1/auth/change-password'], authLimiter);
+  app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/businesses', businessRoutes);
   app.use('/api/v1/clients', clientRoutes);
   app.use('/api/v1/services', serviceRoutes);

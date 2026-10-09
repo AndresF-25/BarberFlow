@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -24,8 +25,9 @@ export function assertJwtSecret() {
   return secret;
 }
 
+// Cada token lleva un id único (jti): es lo que permite cerrar UNA sesión sin afectar a las demás del mismo usuario.
 export function signToken(payload) {
-  return jwt.sign(payload, assertJwtSecret(), { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, assertJwtSecret(), { expiresIn: JWT_EXPIRES_IN, jwtid: randomUUID() });
 }
 
 export function verifyToken(token) {

@@ -4,6 +4,7 @@ import {
   businessDateOf,
   endOfMonth,
   endOfWeek,
+  formatDateEs,
   nowInBusinessTz,
   parseDateOnly,
   startOfMonth,
@@ -16,12 +17,41 @@ const WORKDAY_MINUTES = 600;
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const PAYMENT_LABELS = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia/Nequi' };
-const PAYMENT_COLORS = { cash: '#C79A5B', card: '#7C97AC', transfer: '#7FA07A' };
+const PAYMENT_COLORS = { cash: '#007A6E', card: '#4F46E5', transfer: '#D9930B' };
 
 const toPesos = (cents) => Math.round(cents / 100);
 // Variación porcentual; null cuando no hay base de comparación.
 const pct = (current, previous) => (previous > 0 ? Math.round(((current - previous) / previous) * 100) : null);
 const dateKey = (date) => date.toISOString().slice(0, 10);
+const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+
+// Reparte 100 puntos entre las partes por el método del mayor resto: siempre suma exactamente 100.
+function splitPercents(values) {
+  const total = values.reduce((a, v) => a + v, 0);
+  if (!total) return values.map(() => 0);
+  const raw = values.map((v) => (v / total) * 100);
+  const result = raw.map(Math.floor);
+  let left = 100 - result.reduce((a, v) => a + v, 0);
+  raw.map((v, i) => [v - Math.floor(v), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => {
+    if (left > 0) { result[i] += 1; left -= 1; }
+  });
+  return result;
+}
+
+// Barberos que cuentan para la capacidad: los activos y los que atendieron citas ese día (aunque ya estén dados de baja).
+async function staffCount(businessId, appointments) {
+  const active = await prisma.user.findMany({ where: { businessId, role: 'employee', isActive: true }, select: { id: true } });
+  const ids = new Set(active.map((u) => u.id));
+  appointments.forEach((a) => ids.add(a.employeeId));
+  return ids.size;
+}
+
+const UNIT_FORMS = { unidad: ['unidad', 'unidades'], paquete: ['paquete', 'paquetes'] };
+function formatStock(stock, unit) {
+  if (stock === 0) return 'Agotado';
+  const forms = UNIT_FORMS[unit];
+  return forms ? `${stock} ${stock === 1 ? forms[0] : forms[1]}` : `${stock} ${unit}`;
+}
 
 function addMonths(dateStr, n) {
   const d = parseDateOnly(startOfMonth(dateStr));
@@ -122,7 +152,6 @@ export async function getDashboardAnalytics(businessId, dateStr) {
   const weekFrom = startOfWeek(date);
   const weekTo = endOfWeek(date);
   const prevWeekFrom = addDays(weekFrom, -7);
-  const prevWeekTo = addDays(weekTo, -7);
   const monthFrom = startOfMonth(date);
   const monthTo = endOfMonth(date);
   const prevMonthTo = addDays(monthFrom, -1);
@@ -131,7 +160,12 @@ export async function getDashboardAnalytics(businessId, dateStr) {
   const lo = [prevMonthFrom, prevWeekFrom, prevDay].sort()[0];
   const hi = [monthTo, weekTo].sort().reverse()[0];
 
-  const [rows, appts, employees, newClients, prevNewClients] = await Promise.all([
+  // La semana y el mes en curso se comparan con el MISMO tramo del período anterior (no con el anterior ya completo).
+  const weekElapsed = daysBetween(weekFrom, date);
+  const prevWeekSpanTo = addDays(prevWeekFrom, weekElapsed);
+  const prevMonthSpanTo = [addDays(prevMonthFrom, Number(date.slice(8)) - 1), prevMonthTo].sort()[0];
+
+  const [rows, appts, newClients, newClientsToDate, prevNewClientsSpan] = await Promise.all([
     loadMoneyRows(businessId, lo, hi),
     prisma.appointment.findMany({
       where: {
@@ -141,9 +175,9 @@ export async function getDashboardAnalytics(businessId, dateStr) {
       },
       include: { service: true },
     }),
-    prisma.user.count({ where: { businessId, role: 'employee', isActive: true } }),
     countClientsCreated(businessId, monthFrom, monthTo),
-    countClientsCreated(businessId, prevMonthFrom, prevMonthTo),
+    countClientsCreated(businessId, monthFrom, date),
+    countClientsCreated(businessId, prevMonthFrom, prevMonthSpanTo),
   ]);
 
   const today = appts.filter((a) => dateKey(a.appointmentDate) === date);
@@ -152,12 +186,15 @@ export async function getDashboardAnalytics(businessId, dateStr) {
   const revenueToday = sumCents(inRange(rows, date, date));
   const revenuePrevDay = sumCents(inRange(rows, prevDay, prevDay));
   const revenueWeek = sumCents(inRange(rows, weekFrom, weekTo));
-  const revenuePrevWeek = sumCents(inRange(rows, prevWeekFrom, prevWeekTo));
+  const revenueWeekToDate = sumCents(inRange(rows, weekFrom, date));
+  const revenuePrevWeekSpan = sumCents(inRange(rows, prevWeekFrom, prevWeekSpanTo));
   const revenueMonth = sumCents(inRange(rows, monthFrom, monthTo));
-  const revenuePrevMonth = sumCents(inRange(rows, prevMonthFrom, prevMonthTo));
+  const revenueMonthToDate = sumCents(inRange(rows, monthFrom, date));
+  const revenuePrevMonthSpan = sumCents(inRange(rows, prevMonthFrom, prevMonthSpanTo));
 
-  const occToday = occupancy(today, employees);
-  const occPrev = occupancy(lastWeek, employees);
+  const [staffToday, staffPrev] = await Promise.all([staffCount(businessId, today), staffCount(businessId, lastWeek)]);
+  const occToday = occupancy(today, staffToday);
+  const occPrev = occupancy(lastWeek, staffPrev);
 
   return {
     date,
@@ -178,9 +215,9 @@ export async function getDashboardAnalytics(businessId, dateStr) {
       citas: pct(today.length, lastWeek.length),
       ingresos: pct(revenueToday, revenuePrevDay),
       ocupacion: pct(occToday, occPrev),
-      semana: pct(revenueWeek, revenuePrevWeek),
-      mes: pct(revenueMonth, revenuePrevMonth),
-      clientesNuevos: pct(newClients, prevNewClients),
+      semana: pct(revenueWeekToDate, revenuePrevWeekSpan),
+      mes: pct(revenueMonthToDate, revenuePrevMonthSpan),
+      clientesNuevos: pct(newClientsToDate, prevNewClientsSpan),
     },
   };
 }
@@ -206,7 +243,10 @@ export async function getRevenueAnalytics(businessId, period, anchorDate) {
 
   const monthRows = inRange(rows, monthFrom, monthTo);
   const monthServiceRows = monthRows.filter((r) => r.kind === 'service');
-  const prevMonthRevenue = sumCents(inRange(rows, prevMonthFrom, endOfMonth(prevMonthFrom)));
+  // Mes en curso hasta la fecha vs. el mismo tramo del mes anterior.
+  const prevMonthSpanTo = [addDays(prevMonthFrom, Number(anchor.slice(8)) - 1), endOfMonth(prevMonthFrom)].sort()[0];
+  const monthToDateRevenue = sumCents(inRange(rows, monthFrom, anchor));
+  const prevMonthRevenue = sumCents(inRange(rows, prevMonthFrom, prevMonthSpanTo));
 
   const byService = groupByService(monthServiceRows).sort((a, b) => b.cents - a.cents);
   const names = await serviceNames(byService.map((s) => s.serviceId));
@@ -214,11 +254,12 @@ export async function getRevenueAnalytics(businessId, period, anchorDate) {
 
   const byMethod = {};
   for (const r of monthServiceRows) byMethod[r.method] = (byMethod[r.method] || 0) + r.cents;
-  const methodTotal = Object.values(byMethod).reduce((a, v) => a + v, 0);
-  const paymentMethods = Object.entries(byMethod).map(([method, cents]) => ({
+  const methodEntries = Object.entries(byMethod);
+  const methodPercents = splitPercents(methodEntries.map(([, cents]) => cents));
+  const paymentMethods = methodEntries.map(([method], i) => ({
     name: PAYMENT_LABELS[method] || method,
-    value: Math.round((cents / methodTotal) * 100),
-    color: PAYMENT_COLORS[method] || '#6E6255',
+    value: methodPercents[i],
+    color: PAYMENT_COLORS[method] || '#66726E',
   }));
 
   return {
@@ -226,7 +267,7 @@ export async function getRevenueAnalytics(businessId, period, anchorDate) {
     data,
     resumen: {
       ingresosMes: toPesos(sumCents(monthRows)),
-      trendMes: pct(sumCents(monthRows), prevMonthRevenue),
+      trendMes: pct(monthToDateRevenue, prevMonthRevenue),
       serviciosRealizados: monthServiceRows.length,
       ticketPromedio: monthServiceRows.length ? toPesos(sumCents(monthServiceRows) / monthServiceRows.length) : 0,
       servicioTop: servicesComparison[0]
@@ -246,7 +287,7 @@ export async function getMetricsAnalytics(businessId, period, anchorDate) {
   const to = period === 'month' ? endOfMonth(anchor) : endOfWeek(anchor);
   const seriesTo = [to, endOfMonth(anchor)].sort().reverse()[0];
 
-  const [appointments, employees, rows] = await Promise.all([
+  const [appointments, rows] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         businessId,
@@ -255,9 +296,9 @@ export async function getMetricsAnalytics(businessId, period, anchorDate) {
       },
       include: { service: true },
     }),
-    prisma.user.count({ where: { businessId, role: 'employee', isActive: true } }),
     loadMoneyRows(businessId, addMonths(anchor, -5), seriesTo),
   ]);
+  const employees = await staffCount(businessId, appointments);
 
   // Demanda por hora, ordenada de la mañana a la noche.
   const hourBuckets = new Map();
@@ -291,15 +332,16 @@ export async function getMetricsAnalytics(businessId, period, anchorDate) {
     nuevos = firsts.filter((f) => businessDateOf(f._min.completedAt) >= from).length;
   }
   const recurrentes = clientIds.length - nuevos;
+  const [recurrentesPct, nuevosPct] = splitPercents([recurrentes, nuevos]);
   const nuevosVsRecurrentes = clientIds.length
-    ? [
-      { name: 'Recurrentes', value: Math.round((recurrentes / clientIds.length) * 100) },
-      { name: 'Nuevos', value: Math.round((nuevos / clientIds.length) * 100) },
-    ]
+    ? [{ name: 'Recurrentes', value: recurrentesPct }, { name: 'Nuevos', value: nuevosPct }]
     : [];
 
-  const top = groupByService(serviceRows).sort((a, b) => b.count - a.count)[0];
-  const names = top ? await serviceNames([top.serviceId]) : {};
+  // Servicio más vendido: más veces; en empate, más ingresos; y luego el nombre (así el resultado no depende del orden).
+  const grouped = groupByService(serviceRows);
+  const names = await serviceNames(grouped.map((g) => g.serviceId));
+  const top = grouped.sort((a, b) => b.count - a.count || b.cents - a.cents
+    || (names[a.serviceId] || '').localeCompare(names[b.serviceId] || '', 'es'))[0];
 
   const activeDays = new Set(appointments.map((a) => dateKey(a.appointmentDate))).size;
 
@@ -318,6 +360,24 @@ export async function getAlerts(businessId) {
   const alerts = [];
   const today = nowInBusinessTz().date;
 
+  // Citas de días anteriores que siguen abiertas: hay que finalizarlas (cobrar) o cancelarlas.
+  const unclosed = await prisma.appointment.findMany({
+    where: { businessId, appointmentDate: { lt: parseDateOnly(today) }, status: { in: ['pending', 'confirmed'] } },
+    orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
+  });
+  if (unclosed.length) {
+    alerts.push({
+      id: 'sincerrar',
+      tipo: 'sincerrar',
+      prioridad: 'alta',
+      titulo: 'Citas de días anteriores sin cerrar',
+      detalle: `${unclosed.length} cita(s) siguen pendientes o confirmadas aunque su día ya pasó: finalízalas para registrar el cobro o cancélalas.`,
+      items: unclosed.slice(0, 5).map((a) => ({ nombre: a.clientName, dato: `${formatDateEs(dateKey(a.appointmentDate), { year: false })} ${a.startTime}` })),
+      accion: 'Ir a la agenda',
+      destino: 'agenda',
+    });
+  }
+
   const clients = await prisma.client.findMany({ where: { businessId } });
   const enriched = await enrichClients(businessId, clients);
   const inactive = enriched.filter((c) => c.etiqueta === 'Inactivo');
@@ -329,22 +389,23 @@ export async function getAlerts(businessId) {
       prioridad: 'alta',
       titulo: 'Clientes que no regresan hace tiempo',
       detalle: `${inactive.length} cliente(s) no visitan la barbería hace más de 5 semanas.`,
-      items: inactive.slice(0, 5).map((c) => ({ nombre: c.nombre, dato: `Última visita: ${c.ultima}` })),
+      items: inactive.slice(0, 5).map((c) => ({ nombre: c.nombre, dato: `Última visita: ${formatDateEs(c.ultima)}` })),
       accion: 'Ver clientes',
       destino: 'clientes',
     });
   }
 
   const products = await prisma.product.findMany({ where: { businessId, isActive: true } });
-  const low = products.filter((p) => p.stock <= p.stockMin);
+  // Los agotados primero; si hay alguno, la alerta es urgente.
+  const low = products.filter((p) => p.stock <= p.stockMin).sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, 'es'));
   if (low.length) {
     alerts.push({
       id: 'stock',
       tipo: 'stock',
-      prioridad: 'media',
+      prioridad: low.some((p) => p.stock === 0) ? 'alta' : 'media',
       titulo: 'Productos con stock bajo',
       detalle: `${low.length} producto(s) están en o por debajo del mínimo.`,
-      items: low.slice(0, 5).map((p) => ({ nombre: p.name, dato: `${p.stock} ${p.unit}(s)` })),
+      items: low.slice(0, 5).map((p) => ({ nombre: p.name, dato: formatStock(p.stock, p.unit) })),
       accion: 'Revisar inventario',
       destino: 'inventario',
     });
@@ -386,5 +447,7 @@ export async function getAlerts(businessId) {
     });
   }
 
-  return alerts;
+  // Las urgentes primero (el orden dentro de cada prioridad se conserva).
+  const orden = { alta: 0, media: 1, baja: 2 };
+  return alerts.sort((a, b) => orden[a.prioridad] - orden[b.prioridad]);
 }
