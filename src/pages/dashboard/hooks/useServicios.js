@@ -29,13 +29,15 @@ export function useServicios() {
   });
 
   const edit = (id, data) => attempt(async () => {
-    const { service } = await api.updateService(id, data);
+    const { service, scheduleConflicts } = await api.updateService(id, data);
     setServicios(prev => prev.map(s => s.id === id ? service : s));
+    return { scheduleConflicts: scheduleConflicts || 0 };
   });
 
   const remove = (id) => attempt(async () => {
-    await api.deleteService(id);
+    const { pendingAppointments } = await api.deleteService(id);
     setServicios(prev => prev.filter(s => s.id !== id));
+    return { pendingAppointments: pendingAppointments || 0 };
   });
 
   return { servicios, estado, add, edit, remove };

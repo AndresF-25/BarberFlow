@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 
-/* Equipo del negocio: lista de empleados y alta de nuevos. */
+/* Equipo del negocio.
+ *   equipo     → todos (incluidos los desactivados, solo para el dueño): lo usa la vista Empleados.
+ *   empleados  → solo los activos: lo usan la agenda y «Nueva cita» (no se asigna a quien ya no trabaja ahí). */
 export function useEmpleados() {
-  const { createEmployee, listEmployees } = useAuth();
-  const [empleados, setEmpleados] = useState([]);
-  const [version, setVersion] = useState(0); // fuerza refresco tras crear un empleado
+  const { createEmployee, updateEmployee, listEmployees } = useAuth();
+  const [equipo, setEquipo] = useState([]);
+  const [version, setVersion] = useState(0); // fuerza refresco tras crear o modificar un empleado
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const list = await listEmployees();
-      if (active) setEmpleados(list);
+      const list = await listEmployees({ includeInactive: true });
+      if (active) setEquipo(list);
     })();
     return () => { active = false; };
   }, [listEmployees, version]);
@@ -22,5 +24,12 @@ export function useEmpleados() {
     return result;
   };
 
-  return { empleados, create };
+  const update = async (id, patch) => {
+    const result = await updateEmployee(id, patch);
+    if (result.ok) setVersion(v => v + 1);
+    return result;
+  };
+
+  const empleados = equipo.filter(e => e.active !== false);
+  return { empleados, equipo, create, update };
 }

@@ -7,4 +7,44 @@ html, body, #root {
 }
 body {
   margin: 0;
+  font-family: 'Archivo', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  outline: 3px solid #1F4FCC;
+  outline-offset: 2px;
+}
+
+/* =========================================================================
+   POSTE DE BARBERO — la firma visual de BarberFlow.
+   Franjas rojo / blanco / cobalto a 45°. La losa cuadrada (80px × √2) hace
+   que el patrón repita sin costura, por eso la animación no da saltos.
+   ========================================================================= */
+.bf-pole {
+  background-color: #fff;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #D7283A 0 20px,
+    #fff 20px 40px,
+    #1F4FCC 40px 60px,
+    #fff 60px 80px
+  );
+  background-size: 113.1371px 113.1371px;
+}
+.bf-pole--move {
+  animation: bf-pole-run 2.6s linear infinite;
+}
+@keyframes bf-pole-run {
+  to { background-position: 0 113.1371px; }
+}
+/* Volumen de cilindro: luz a la izquierda, sombra a la derecha */
+.bf-pole--round {
+  box-shadow:
+    inset 12px 0 14px -6px rgba(255, 255, 255, 0.55),
+    inset -14px 0 16px -6px rgba(13, 27, 58, 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-pole--move { animation: none; }
 }

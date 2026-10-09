@@ -36,14 +36,16 @@ export function useTienda() {
     setProductos(prev => [...prev, product]);
   });
 
-  // El stock se corrige con un ajuste (queda en el historial de stock), no con un PATCH directo.
+  // Un solo PATCH: si cambia el stock, el servidor lo registra como corrección en el historial
+  // calculando la diferencia sobre el stock real (no sobre el que la pantalla tenía en memoria).
   const editProducto = (id, data) => attempt(async () => {
-    const actual = productos.find(p => p.id === id);
-    const { stock, ...resto } = data;
-    let { product } = await api.updateProduct(id, resto);
-    if (actual && stock !== actual.stock) {
-      ({ product } = await api.adjustProductStock(id, { delta: stock - actual.stock, reason: 'correction' }));
-    }
+    const { product } = await api.updateProduct(id, data);
+    setProductos(prev => prev.map(p => p.id === id ? product : p));
+  });
+
+  // Entrada (+) o salida (−) de mercancía; queda en el historial con la razón «manual».
+  const ajustarStock = (id, delta) => attempt(async () => {
+    const { product } = await api.adjustProductStock(id, { delta, reason: 'manual' });
     setProductos(prev => prev.map(p => p.id === id ? product : p));
   });
 
@@ -52,11 +54,17 @@ export function useTienda() {
     setProductos(prev => prev.filter(p => p.id !== id));
   });
 
+  // Movimientos de stock de un producto (los últimos). Devuelve { ok, movements, total }.
+  const historialStock = (id) => attempt(async () => {
+    const { movements, total } = await api.productStockHistory(id, { limit: 100 });
+    return { movements, total };
+  });
+
   // El servidor descuenta el stock y vincula al cliente; luego se recargan ambas listas.
   const addVenta = (data) => attempt(async () => {
     await api.createProductSale(data);
     await Promise.all([cargarProductos(), cargarVentas()]);
   });
 
-  return { productos, ventas, productosEstado, ventasEstado, addProducto, editProducto, removeProducto, addVenta };
+  return { productos, ventas, productosEstado, ventasEstado, addProducto, editProducto, removeProducto, ajustarStock, historialStock, addVenta };
 }

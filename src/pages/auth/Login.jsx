@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import './auth.css';
+import AuthShell from './AuthShell';
 
 export default function Login() {
   const { login } = useAuth();
@@ -16,6 +16,8 @@ export default function Login() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!form.email.trim()) return setError('Ingresa tu correo.');
+    if (!form.password) return setError('Ingresa tu contraseña.');
     setSubmitting(true);
     const result = await login(form);
     setSubmitting(false);
@@ -36,36 +38,28 @@ export default function Login() {
   };
 
   return (
-    <div className="barberflow-auth">
-      <div className="auth-card">
-        <Link to="/" className="auth-logo">
-          <span className="auth-logo-mark"><span /></span>
-          <span className="auth-logo-text">BarberFlow</span>
-        </Link>
+    <AuthShell
+      headline="Tu agenda de hoy te está esperando"
+      lead="Entra para ver las citas del día, tus clientes y lo que vas a facturar."
+      title="Iniciar sesión"
+      sub="Ingresa a tu panel para gestionar citas, clientes e ingresos."
+      footer={<p className="auth-switch">¿Aún no tienes cuenta? <Link to="/registro">Regístrate gratis</Link></p>}
+    >
+      {error && <div className="auth-error" role="alert">{error}</div>}
 
-        <p className="auth-eyebrow">Bienvenido de nuevo</p>
-        <h1>Iniciar sesión</h1>
-        <p className="auth-sub">Ingresá a tu panel para gestionar citas, clientes e ingresos.</p>
-
-        {error && <div className="auth-error">{error}</div>}
-
-        <form onSubmit={onSubmit} noValidate>
-          <div>
-            <label htmlFor="email">Correo electrónico</label>
-            <input id="email" type="email" placeholder="tu@barberia.com" value={form.email} onChange={onChange('email')} />
-          </div>
-          <div>
-            <label htmlFor="password">Contraseña</label>
-            <input id="password" type="password" placeholder="Tu contraseña" value={form.password} onChange={onChange('password')} />
-          </div>
-          <button type="submit" className="btn-submit" disabled={submitting}>
-            {submitting ? 'Ingresando…' : 'Iniciar sesión'}
-          </button>
-        </form>
-
-        <p className="auth-switch">¿Todavía no tenés cuenta? <Link to="/registro">Registrate gratis</Link></p>
-        <Link to="/" className="auth-back">← Volver a la página principal</Link>
-      </div>
-    </div>
+      <form onSubmit={onSubmit} noValidate>
+        <div>
+          <label htmlFor="email">Correo electrónico</label>
+          <input id="email" type="email" autoComplete="email" placeholder="tu@barberia.com" value={form.email} onChange={onChange('email')} />
+        </div>
+        <div>
+          <label htmlFor="password">Contraseña</label>
+          <input id="password" type="password" autoComplete="current-password" placeholder="Tu contraseña" value={form.password} onChange={onChange('password')} />
+        </div>
+        <button type="submit" className="btn-submit" disabled={submitting}>
+          {submitting ? 'Ingresando…' : 'Iniciar sesión'}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

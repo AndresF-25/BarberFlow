@@ -69,7 +69,12 @@ export const api = {
       return { ok: false, error: err.message };
     }
   },
-  listEmployees: () => request('/auth/employees'),
+  listEmployees: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/auth/employees${q ? `?${q}` : ''}`);
+  },
+  updateEmployee: (id, body) => request(`/auth/employees/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  changePassword: (body) => request('/auth/change-password', { method: 'POST', body: JSON.stringify(body) }),
 
   getBusiness: () => request('/businesses/me'),
   patchBusiness: (body) => request('/businesses/me', { method: 'PATCH', body: JSON.stringify(body) }),
@@ -79,6 +84,7 @@ export const api = {
     return request(`/clients${q ? `?${q}` : ''}`);
   },
   getClient: (id) => request(`/clients/${id}`),
+  updateClient: (id, body) => request(`/clients/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
   listServices: () => request('/services'),
   createService: (body) => request('/services', { method: 'POST', body: JSON.stringify(body) }),
@@ -92,6 +98,10 @@ export const api = {
   createProduct: (body) => request('/products', { method: 'POST', body: JSON.stringify(body) }),
   updateProduct: (id, body) => request(`/products/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProduct: (id) => request(`/products/${id}`, { method: 'DELETE' }),
+  productStockHistory: (id, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/products/${id}/stock-history${q ? `?${q}` : ''}`);
+  },
   adjustProductStock: (id, body) => request(`/products/${id}/adjust-stock`, { method: 'POST', body: JSON.stringify(body) }),
 
   listAppointments: (params = {}) => {

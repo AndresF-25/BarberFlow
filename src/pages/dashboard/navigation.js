@@ -17,7 +17,7 @@ export const NAV = [
 ];
 
 // Ítems de NAV visibles para cada rol dentro de /dashboard.
-// 'owner' ve todo (incluida la gestión de empleados y del negocio);
+// 'owner' ve todo (el perfil del negocio se abre desde la cabecera, no desde las pestañas);
 // 'employee' solo ve lo operativo, según lo definido en el alcance de RBAC.
 export const NAV_BY_ROLE = {
   owner: ['dashboard', 'agenda', 'clientes', 'servicios', 'ingresos', 'metricas', 'alertas', 'empleados'],
@@ -44,11 +44,12 @@ export const TITLES = {
   dashboard: ['Panel General', 'Resumen operativo de tu barbería'],
   agenda: ['Citas y Agenda', 'Programa, confirma y organiza las citas del día'],
   clientes: ['Clientes', 'Historial y relación con tus clientes'],
-  servicios: ['Servicios', 'Catálogo, precios y rentabilidad'],
+  servicios: ['Servicios', 'Catálogo, precios y duración de cada servicio'],
   ingresos: ['Ingresos', 'Análisis financiero del negocio'],
   metricas: ['Métricas del Negocio', 'Indicadores clave de desempeño'],
   alertas: ['Alertas Inteligentes', 'Recomendaciones para mejorar tu operación'],
   inventario: ['Inventario', 'Stock y catálogo de productos ajenos al corte'],
   ventas: ['Ventas Extra', 'Productos vendidos fuera del servicio de corte'],
-  empleados: ['Empleados', 'Gestioná el equipo de tu negocio'],
+  empleados: ['Empleados', 'Gestiona el equipo de tu negocio'],
+  negocio: ['Mi negocio', 'Nombre, contacto y logo de tu barbería'],
 };

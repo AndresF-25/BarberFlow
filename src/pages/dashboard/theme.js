@@ -3,45 +3,53 @@ import {
 } from 'lucide-react';
 
 /* =========================================================================
-   TOKENS DE DISEÑO
-   Paleta "cuero y latón" — negro cálido, cuero oscuro, acento en latón/bronce.
+   TOKENS DE DISEÑO — sistema "Turno"
+   Lienzo blanco, tinta verde-negra y un único acento (tónico). Cada color
+   significa una sola cosa: tónico = acción y confirmado, caléndula = pendiente,
+   coral = peligro, índigo = tienda y clientes nuevos.
    ========================================================================= */
 export const C = {
-  bg: '#0F0D0B',
-  bgSoft: '#141110',
-  surface: '#1B1714',
-  surfaceHover: '#221D18',
-  border: '#2C2620',
-  borderSoft: '#221E19',
-  gold: '#C79A5B',
-  goldBright: '#E0B679',
-  goldDim: '#8A6D45',
-  text: '#F3ECE0',
-  textMuted: '#A99A87',
-  textFaint: '#6E6255',
-  green: '#7FA07A',
-  greenBg: 'rgba(127,160,122,0.12)',
-  amber: '#D0A24E',
-  amberBg: 'rgba(208,162,78,0.12)',
-  red: '#BD6552',
-  redBg: 'rgba(189,101,82,0.12)',
-  blue: '#7C97AC',
+  bg: '#FFFFFF',
+  bgSoft: '#F3F5F4',
+  surface: '#FFFFFF',
+  surfaceHover: '#F3F5F4',
+  border: '#DCE2E0',
+  borderSoft: '#E9EDEB',
+  ink: '#12201F',
+  accent: '#007A6E',
+  accentBright: '#00625A',
+  accentDim: '#8ED9CF',
+  accentBg: 'rgba(0,122,110,0.10)',
+  onAccent: '#FFFFFF',
+  text: '#12201F',
+  textMuted: '#46544F',
+  textFaint: '#66726E',
+  green: '#007A6E',
+  greenBg: 'rgba(0,122,110,0.10)',
+  amber: '#7A4E00',
+  amberBg: 'rgba(242,176,30,0.22)',
+  amberSolid: '#F2B01E',
+  red: '#C62F36',
+  redBg: 'rgba(198,47,54,0.09)',
+  blue: '#4F46E5',
+  blueBg: 'rgba(79,70,229,0.10)',
+  scrim: 'rgba(18,32,31,0.5)',
 };
 
 /* -------------------------------------------------------------------------
-   Paleta secundaria para Inventario y Ventas Extra.
-   Intencionalmente distinta al dorado/cuero del core de cortes: un verde
-   azulado "almacén" que ayuda a que el usuario distinga de un vistazo que
-   está en una sección de productos/stock y no en la operación de barbería.
+   Tienda (Inventario y Ventas Extra): índigo, distinto al tónico del core
+   de cortes, para saber de un vistazo que estás en productos y stock.
    ------------------------------------------------------------------------- */
 export const INV = {
-  accent: '#5E9788',
-  accentBright: '#7DB8A8',
-  accentDim: '#3E6459',
-  accentBg: 'rgba(94,151,136,0.14)',
-  surface: '#12191A',
-  border: '#233634',
+  accent: '#4F46E5',
+  accentBright: '#3F37C9',
+  accentDim: '#B7B3F5',
+  accentBg: 'rgba(79,70,229,0.09)',
+  surface: '#F6F5FE',
+  border: '#DCDAF7',
 };
+
+export const DISPLAY_FONT = "'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif";
 
 export const fmtCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 
@@ -50,21 +58,17 @@ export const fmtCompact = (n) => n >= 1000000 ? '$' + (n/1000000).toFixed(1).rep
 /* Categorías de servicio disponibles para el formulario de alta/edición */
 export const CATEGORIAS_SERVICIO = ['Cortes', 'Barba', 'Combos', 'Tratamientos'];
 
-/* =========================================================================
-   MOCK DATA — INVENTARIO (productos ajenos al servicio de corte)
-   ========================================================================= */
+/* Categorías de producto para inventario y ventas extra */
 export const CATEGORIAS_PRODUCTO = ['Styling', 'Cuidado de barba', 'Cuidado capilar', 'Insumos', 'Bebidas'];
 
-/* =========================================================================
-   MOCK DATA — VENTAS DE PRODUCTOS (ajenas al servicio de corte)
-   ========================================================================= */
+/* Estados de cita: color, fondo e icono */
 export const ESTADOS = {
   Confirmada: { color: C.green, bg: C.greenBg, icon: CheckCircle2 },
   Pendiente: { color: C.amber, bg: C.amberBg, icon: Clock },
   Cancelada: { color: C.red, bg: C.redBg, icon: XCircle },
-  Finalizada: { color: C.textMuted, bg: 'rgba(169,154,135,0.1)', icon: CheckCircle2 },
+  Finalizada: { color: C.textMuted, bg: 'rgba(70,84,79,0.10)', icon: CheckCircle2 },
 };
 
 export const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-export const darkTooltip = { background: C.bgSoft, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.text };
+export const tooltipStyle = { background: C.ink, border: 'none', borderRadius: 10, fontSize: 12, color: '#fff', boxShadow: 'none' };

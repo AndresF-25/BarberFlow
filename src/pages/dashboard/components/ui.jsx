@@ -1,7 +1,7 @@
 import {
-  Clock, AlertTriangle, ArrowUpRight, ArrowDownRight,
+  AlertTriangle, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
-import { C, ESTADOS } from '../theme';
+import { C, INV, ESTADOS } from '../theme';
 
 /* =========================================================================
    PRIMITIVOS
@@ -10,18 +10,18 @@ export function Badge({ estado }) {
   const cfg = ESTADOS[estado];
   const Icon = cfg.icon;
   return (
-    <span style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}33` }}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap">
-      <Icon size={12} /> {estado}
+    <span style={{ color: cfg.color, background: cfg.bg }}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+      <Icon size={12} aria-hidden="true" /> {estado}
     </span>
   );
 }
 
 export function TagPill({ tag }) {
   const map = {
-    VIP: { color: C.gold, bg: 'rgba(199,154,91,0.14)' },
+    VIP: { color: C.accent, bg: C.accentBg },
     Frecuente: { color: C.green, bg: C.greenBg },
-    Nuevo: { color: C.blue, bg: 'rgba(124,151,172,0.14)' },
+    Nuevo: { color: C.blue, bg: C.blueBg },
     Inactivo: { color: C.red, bg: C.redBg },
   };
   const cfg = map[tag];
@@ -33,46 +33,66 @@ export function TagPill({ tag }) {
 }
 
 export function Trend({ value }) {
-  const up = value >= 0;
+  // 0 % es «igual», no una subida: sin flecha ni color de alerta/éxito. Los lectores de pantalla oyen «sube/baja».
+  if (value === 0) {
+    return <span style={{ color: C.textFaint }} className="inline-flex items-center gap-0.5 text-xs font-semibold">0%<span className="sr-only"> sin cambio</span></span>;
+  }
+  const up = value > 0;
   return (
     <span style={{ color: up ? C.green : C.red }} className="inline-flex items-center gap-0.5 text-xs font-semibold">
-      {up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+      {up ? <ArrowUpRight size={13} aria-hidden="true" /> : <ArrowDownRight size={13} aria-hidden="true" />}
       {Math.abs(value)}%
+      <span className="sr-only">{up ? ' más' : ' menos'}</span>
     </span>
   );
 }
 
-export function KpiCard({ icon: Icon, label, value, sub, trend }) {
+/* Cifra en bloque tonal (sin borde ni sombra): etiqueta, número grande y detalle. */
+export function KpiCard({ icon: Icon, label, value, sub, trend, tienda = false, alerta = false }) {
+  const tono = alerta ? C.red : tienda ? INV.accent : C.accent;
   return (
-    <div className="bd-card bd-fade-in p-5 rounded-xl relative overflow-hidden"
-      style={{ background: C.surface, border: `1px solid ${C.border}` }}>
-      <div className="absolute top-0 right-0 w-10 h-10" style={{
-        background: `linear-gradient(135deg, transparent 50%, ${C.gold}22 50%)`,
-      }} />
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(199,154,91,0.12)' }}>
-          <Icon size={18} style={{ color: C.gold }} />
+    <div className="bd-fade-in p-5 rounded-xl" style={{ background: tienda ? INV.surface : C.bgSoft }}>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 text-sm font-medium min-w-0" style={{ color: C.textMuted }}>
+          {Icon && <Icon size={15} style={{ color: tono }} aria-hidden="true" className="flex-shrink-0" />}
+          <span className="truncate">{label}</span>
         </div>
         {trend !== undefined && <Trend value={trend} />}
       </div>
-      <div className="bd-display text-2xl font-semibold leading-none mb-1.5">{value}</div>
-      <div className="text-xs" style={{ color: C.textMuted }}>{label}</div>
-      {sub && <div className="text-xs mt-1" style={{ color: C.textFaint }}>{sub}</div>}
+      <div className="bd-display bd-num text-4xl leading-none">{value}</div>
+      {sub && <div className="text-xs mt-2" style={{ color: C.textFaint }}>{sub}</div>}
     </div>
   );
 }
 
+/* Cifra en línea: etiqueta a la izquierda, número a la derecha, separadas por líneas finas. */
+export function StatLine({ label, value, sub, trend }) {
+  return (
+    <div className="bd-statline flex items-center justify-between gap-4 py-4">
+      <div className="min-w-0">
+        <div className="text-sm font-medium">{label}</div>
+        {sub && <div className="text-xs mt-0.5" style={{ color: C.textFaint }}>{sub}</div>}
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {trend !== undefined && <Trend value={trend} />}
+        <div className="bd-display bd-num text-3xl leading-none">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+/* Sección sin caja: un título y su contenido, separados del bloque anterior por aire y una línea fina. */
 export function SectionCard({ title, action, children, className = '' }) {
   return (
-    <div className={`bd-fade-in rounded-xl p-5 ${className}`} style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+    <section className={`bd-fade-in pt-5 ${className}`} style={{ borderTop: `1px solid ${C.border}` }}>
       {title && (
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="bd-display text-sm font-semibold tracking-wide" style={{ color: C.text }}>{title}</h3>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className="bd-display text-xl leading-tight" style={{ color: C.text }}>{title}</h3>
           {action}
         </div>
       )}
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -86,8 +106,17 @@ export function EmptyState({ icon: Icon, text }) {
 }
 
 /* Mensaje de carga o error; devuelve null cuando ya hay datos que mostrar. */
+export function PoleLoader({ text }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center" style={{ color: C.textFaint }} role="status">
+      <div className="bd-loadbar" aria-hidden="true" />
+      <div className="text-sm">{text}</div>
+    </div>
+  );
+}
+
 export function EstadoCarga({ loading, error, what }) {
-  if (loading) return <EmptyState icon={Clock} text={`Cargando ${what}…`} />;
+  if (loading) return <PoleLoader text={`Cargando ${what}…`} />;
   if (error) return <EmptyState icon={AlertTriangle} text={`No se pudieron cargar ${what}: ${error}`} />;
   return null;
 }
@@ -99,9 +128,10 @@ export const trendProp = (v) => (v === null || v === undefined ? undefined : v);
    ========================================================================= */
 export function SelectorPeriodo({ periodo, setPeriodo }) {
   return (
-    <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+    <div className="inline-flex p-0.5 rounded-lg" role="group" aria-label="Período" style={{ background: C.bgSoft }}>
       {['Semana', 'Mes'].map(p => (
-        <button key={p} onClick={() => setPeriodo(p)} className="px-3 py-1.5 text-xs font-medium" style={{ background: periodo === p ? C.bgSoft : 'transparent', color: periodo === p ? C.gold : C.textMuted }}>{p}</button>
+        <button key={p} onClick={() => setPeriodo(p)} aria-pressed={periodo === p} className="px-3.5 py-1.5 text-xs font-semibold rounded-md"
+          style={{ background: periodo === p ? C.ink : 'transparent', color: periodo === p ? '#fff' : C.textMuted }}>{p}</button>
       ))}
     </div>
   );
@@ -112,7 +142,7 @@ export function LeyendaPastel({ datos }) {
     <div className="space-y-2.5">
       {datos.map(m => (
         <div key={m.name} className="flex items-center gap-2 text-xs">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: m.color }} />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: m.color }} aria-hidden="true" />
           <span style={{ color: C.textMuted }}>{m.name}</span>
           <span className="font-semibold ml-auto">{m.value}%</span>
         </div>
